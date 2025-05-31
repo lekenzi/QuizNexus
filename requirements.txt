@@ -1,0 +1,19 @@
+Flask
+flask_sqlalchemy
+flask_migrate
+flask_login
+flask_jwt_extended
+flask_mail
+flask_caching
+flask_cors
+pandas
+redis
+celery
+requests
+jinja2
+python-dotenv
+schedule
+xhtml2pdf
+# Optional
+pytest
+coverage

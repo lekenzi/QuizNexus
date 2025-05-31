@@ -1,0 +1,43 @@
+# Node modules (Vue frontend)
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/*.local
+
+# Vue CLI / Vite
+/.env.local
+/.env.*.local
+
+# Python environments (backend)
+venv/
+env/
+ENV/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# # Flask
+# *.sqlite3
+# db.sqlite3
+# /media
+# /staticfiles
+
+# VSCode settings
+.vscode/
+
+
+
+# PyInstaller
+*.spec
+build/
+dist/
+
+# Logs
+*.log
