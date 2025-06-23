@@ -1,12 +1,9 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+
+from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
 
 class users(db.Model):
-    id = db.Column(
-        db.Integer, primary_key=True
-    )
-    
-    
+    id = db.Column(db.Integer, primary_key=True)
