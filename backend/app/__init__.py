@@ -1,16 +1,15 @@
+import re
 from calendar import c
 from datetime import datetime
-import re
-
-from flask import Flask
-from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
 
 from app.api import api
 from app.config import Config
-from app.models import db
+from app.models import User, db
+from flask import Flask
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
-from app.models import User
+
 
 def create_super_admin():
 

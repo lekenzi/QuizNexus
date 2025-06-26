@@ -1,6 +1,5 @@
-from flask_restful import Resource
-
 from app.api.validators import testparser
+from flask_restful import Resource
 
 
 class TestResource(Resource):
