@@ -2,13 +2,18 @@ import re
 from calendar import c
 from datetime import datetime
 
-from app.api import api
-from app.config import Config
-from app.models import User, db
+import celery
+import jwt
 from flask import Flask
+from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
+
+from app import worker
+from app.api import api
+from app.config import Config
+from app.models import User, db
 
 
 def create_super_admin():
@@ -23,11 +28,11 @@ def create_super_admin():
     if not admin_user:
         admin = User(
             username="admin",
-            password_hash=generate_password_hash("admin_password"),
+            password_hash=generate_password_hash("admin"),
             full_name=admin_full_name,
             qualification=admin_qualification,
             date_of_birth=admin_date_of_birth,
-            is_admin=True,
+            role="admin",
         )
         db.session.add(admin)
         db.session.commit()
@@ -41,8 +46,19 @@ def create_app():
 
     app.config.from_object(Config)
 
+    celery = worker.celery
+    celery.conf.update(
+        broker=app.config["CELERY_BROKER_URL"],
+        result_backend=app.config["CELERY_RESULT_BACKEND"],
+        task_serializer="json",
+    )
+
+    celery.autodiscover_tasks(["tasks"])
+    celery.Task = worker.ContextTask
+
     db.init_app(app)
     migrate = Migrate(app, db)
+    jwt = JWTManager(app)
 
     with app.app_context():
         db.create_all()
@@ -50,5 +66,9 @@ def create_app():
 
     # Register  API resources
     api.init_app(app)
+
+    @app.route("/")
+    def index():
+        return "Welcome to the backend!"
 
     return app

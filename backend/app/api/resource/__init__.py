@@ -1,8 +1,15 @@
-from app.api.validators import testparser
+import email
+
+from flask import g, make_response
+from flask_jwt_extended import jwt_required, create_access_token
 from flask_restful import Resource
+
+from app.api.validators import UserLoginParser, testparser
+from app.models import User
 
 
 class TestResource(Resource):
+    @jwt_required()
     def get(self):
         return {"message": "This is a test resource"}, 200
 
@@ -23,3 +30,43 @@ class TestResource(Resource):
         return {
             "message": f"This is a test resource for DELETE with test={args['test']}"
         }, 204
+
+
+class UserLoginResource(Resource):
+    @jwt_required()
+    def get(self):
+        return {"message": "This is a user login resource"}, 200
+
+    def post(self):
+        args = UserLoginParser.parse_args()
+        username = args["username"]
+        password = args["password"]
+
+        user = User.query.filter_by(username=username).first()
+
+        if not user:
+            return {"message": "Invalid username or password"}, 401
+        else:
+            if not user.check_hash(password):
+                return {"message": "Invalid username or password"}, 401
+            else:
+
+                access_token = create_access_token(
+                    identity={"id": user.id, "role": user.role}
+                )
+
+        return make_response(
+            {
+                "message": "Login successful",
+                "access_token": access_token,
+                "role": user.role,
+            },
+            200,
+        )
+        
+        
+class UserRegisterResource(Resource):
+    def post(self):
+        args = UserLoginParser.parse_args()
+        username = args["username"]
+        password = args["password"]

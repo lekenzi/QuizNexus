@@ -3,7 +3,7 @@ from datetime import timedelta
 
 class Config:
     CACHE_TYPE = "RedisCache"
-    JWT_SECRET_KEY = "i_dont_like_java"
+    JWT_SECRET_KEY = "i_dont_like_javascript"
     CACHE_REDIS_HOST = "localhost"
     SQLALCHEMY_DATABASE_URI = "sqlite:///quiznexus.sqlite3"
     CELERY_RESULT_BACKEND = "redis://localhost:6379/1"

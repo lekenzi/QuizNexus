@@ -19,7 +19,7 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(140))
     qualification = db.Column(db.String(140))
     date_of_birth = db.Column(db.DateTime)
-    is_admin = db.Column(db.Boolean, default=False)
+    role = db.Column(db.String(20), default="user")  # user, admin, superadmin
     scores = db.relationship("Score", backref="user", lazy="dynamic")
 
     def __repr__(self):
