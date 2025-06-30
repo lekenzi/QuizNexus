@@ -1,11 +1,10 @@
 import email
 
+from app.api.validators import UserLoginParser, testparser
+from app.models import User
 from flask import g, make_response
 from flask_jwt_extended import create_access_token, jwt_required
 from flask_restful import Resource
-
-from app.api.validators import UserLoginParser, testparser
-from app.models import User
 
 
 class TestResource(Resource):
