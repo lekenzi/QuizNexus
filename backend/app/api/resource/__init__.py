@@ -1,7 +1,7 @@
 import email
 
 from flask import g, make_response
-from flask_jwt_extended import jwt_required, create_access_token
+from flask_jwt_extended import create_access_token, jwt_required
 from flask_restful import Resource
 
 from app.api.validators import UserLoginParser, testparser
@@ -59,12 +59,17 @@ class UserLoginResource(Resource):
             {
                 "message": "Login successful",
                 "access_token": access_token,
-                "role": user.role,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "isAuthenticated": True,
+                    "role": user.role,
+                },
             },
             200,
         )
-        
-        
+
+
 class UserRegisterResource(Resource):
     def post(self):
         args = UserLoginParser.parse_args()

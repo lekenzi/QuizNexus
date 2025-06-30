@@ -9,5 +9,5 @@ cache = Cache()
 
 from app.api.resource import TestResource, UserLoginResource
 
-api.add_resource(UserLoginResource, "/login", endpoint="login")
-api.add_resource(TestResource, "/test", endpoint="test")
+api.add_resource(UserLoginResource, "/api/login", endpoint="login")
+api.add_resource(TestResource, "/api/test", endpoint="test")

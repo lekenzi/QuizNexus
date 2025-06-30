@@ -21,8 +21,6 @@ UserLoginParser.add_argument(
 )
 
 
-
-
 UserRegisterParser = reqparse.RequestParser()
 
 UserRegisterParser.add_argument(
@@ -36,5 +34,9 @@ UserRegisterParser.add_argument(
 )
 
 UserRegisterParser.add_argument(
-    "date_of_birth", type=str, required=True, help="Date of birth is required", location="json"
+    "date_of_birth",
+    type=str,
+    required=True,
+    help="Date of birth is required",
+    location="json",
 )

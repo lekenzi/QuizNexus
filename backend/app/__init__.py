@@ -1,13 +1,9 @@
-import re
-from calendar import c
 from datetime import datetime
 
-import celery
-import jwt
 from flask import Flask
+from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
 
 from app import worker
@@ -27,7 +23,7 @@ def create_super_admin():
     )
     if not admin_user:
         admin = User(
-            username="admin",
+            username=admin_username,
             password_hash=generate_password_hash("admin"),
             full_name=admin_full_name,
             qualification=admin_qualification,
@@ -50,6 +46,11 @@ def create_app():
     celery.conf.update(
         broker=app.config["CELERY_BROKER_URL"],
         result_backend=app.config["CELERY_RESULT_BACKEND"],
+    )
+    celery = worker.celery
+    celery.conf.update(
+        broker=app.config["CELERY_BROKER_URL"],
+        result_backend=app.config["CELERY_RESULT_BACKEND"],
         task_serializer="json",
     )
 
@@ -57,12 +58,9 @@ def create_app():
     celery.Task = worker.ContextTask
 
     db.init_app(app)
-    migrate = Migrate(app, db)
-    jwt = JWTManager(app)
-
-    with app.app_context():
-        db.create_all()
-        create_super_admin()
+    Migrate(app, db)
+    JWTManager(app)
+    CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}})
 
     # Register  API resources
     api.init_app(app)
