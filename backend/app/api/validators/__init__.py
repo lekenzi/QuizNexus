@@ -22,6 +22,9 @@ UserLoginParser.add_argument(
 
 
 UserRegisterParser = reqparse.RequestParser()
+"""
+usrname, password, full_name, date_of_birth
+"""
 
 UserRegisterParser.add_argument(
     "username", type=str, required=True, help="Username is required", location="json"

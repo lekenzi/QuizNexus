@@ -1,6 +1,6 @@
 <template>
   <div
-    class="container d-flex align-items-center justify-content-center min-vh-100"
+    class="container d-flex align-items-center justify-content-center min-vh-10 mt-5"
   >
     <div class="card shadow p-4" style="max-width: 400px; width: 100%">
       <h2 class="text-center mb-4">Login</h2>
@@ -35,7 +35,11 @@
 
 <script>
 import axios from "axios";
-import store, { getBaseUrl } from "@/stores/appState";
+import store, {
+  getBaseUrl,
+  returnStoreData,
+  setToken,
+} from "@/stores/appState";
 export default {
   name: "LoginComponent",
   data() {
@@ -58,8 +62,11 @@ export default {
           store.commit("setIsAuthenticated", true);
 
           localStorage.setItem("token", response.data.access_token);
-
-          this.$router.push({ name: "home-alias" });
+          setToken(response.data.access_token);
+          console.log("Attempting to log in with:", {
+            returnStore: returnStoreData(),
+          });
+          // this.$router.push({ name: "home-alias" });
         })
         .catch((error) => {
           console.error("Login failed:", error);

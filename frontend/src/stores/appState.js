@@ -110,11 +110,54 @@ export function setRole(role) {
   store.state.USER.role = role;
 }
 
-export function resetUser() {
+export function logout() {
+  store.state.TOKEN = "";
   store.state.USER = {
     id: null,
     username: "",
     role: "",
     isAuthenticated: false,
+  };
+}
+export async function make_getrequest(url, params = {}) {
+  // Build query string from params
+  const queryString = Object.keys(params).length
+    ? "?" + new URLSearchParams(params).toString()
+    : "";
+  const response = await fetch(`${store.state.BASEURL}${url}${queryString}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${store.state.TOKEN}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Network response was not ok");
+  }
+  const data = await response.json();
+  return data;
+}
+
+export async function make_postrequest(url, data = {}) {
+  const response = await fetch(`${store.state.BASEURL}${url}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${store.state.TOKEN}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error("Network response was not ok");
+  }
+  const responseData = await response.json();
+  return responseData;
+}
+
+export function returnStoreData() {
+  return {
+    BASEURL: store.state.BASEURL,
+    TOKEN: store.state.TOKEN,
+    USER: store.state.USER,
   };
 }
