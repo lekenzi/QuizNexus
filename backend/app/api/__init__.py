@@ -7,9 +7,8 @@ cache = Cache()
 
 # add all the resources and routes here for the API
 
-from app.api.resource import  UserLoginResource, UserRegisterResource, UserLogoutResource
+from app.api.resource import UserLoginResource, UserLogoutResource, UserRegisterResource
 
 api.add_resource(UserLoginResource, "/api/login", endpoint="login")
 api.add_resource(UserRegisterResource, "/api/register", endpoint="register")
 api.add_resource(UserLogoutResource, "/api/logout", endpoint="logout")
-

@@ -1,13 +1,12 @@
 import email
 from datetime import datetime
+
+from app.api.validators import UserLoginParser, UserRegisterParser, testparser
+from app.models import User, db
 from flask import g, make_response
 from flask_jwt_extended import create_access_token, jwt_required
 from flask_restful import Resource
 from werkzeug.security import check_password_hash, generate_password_hash
-
-from app.api.validators import UserLoginParser, UserRegisterParser, testparser
-from app.models import User, db
-
 
 # class TestResource(Resource):
 #     @jwt_required()
@@ -78,8 +77,9 @@ class UserRegisterResource(Resource):
         password = args["password"]
         full_name = args["full_name"]
         date_of_birth = args["date_of_birth"]
-        
-        print(f"""s
+
+        print(
+            f"""s
               {username}
               {password}
               {full_name}
@@ -131,19 +131,21 @@ class UserLogoutResource(Resource):
         # Here we just return a success message
         g.jwt_identity = None  # Clear the current identity
         return {"message": "User logged out successfully"}, 200
-    
-    
-    
+
+
 class HomeResource(Resource):
     @jwt_required()
     def get(self):
         return {"message": "Welcome to the Quiz Nexus API!"}, 200
+
     @jwt_required()
     def post(self):
         return {"message": "This is a POST request to the home resource"}, 201
+
     @jwt_required()
     def put(self):
         return {"message": "This is a PUT request to the home resource"}, 200
+
     @jwt_required()
     def delete(self):
         return {"message": "This is a DELETE request to the home resource"}, 204
