@@ -2,14 +2,17 @@ import email
 import logging
 from datetime import datetime
 
-from flask import g, make_response
-from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
-                                jwt_required)
-from flask_restful import Resource
-from werkzeug.security import check_password_hash, generate_password_hash
-
 from app.api.validators import UserLoginParser, UserRegisterParser, testparser
 from app.models import User, db
+from flask import g, make_response
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+)
+from flask_restful import Resource
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # class TestResource(Resource):
 #     @jwt_required()
