@@ -27,50 +27,78 @@
             placeholder="Password"
           />
         </div>
-        <button type="submit" class="btn btn-primary w-100">Login</button>
+        <button type="submit" class="btn btn-primary w-100" :disabled="loading">
+          {{ loading ? "Logging in..." : "Login" }}
+        </button>
       </form>
+      <div v-if="error" class="alert alert-danger mt-3">
+        {{ error }}
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import axios from "axios";
-import store, {
+import {
   getBaseUrl,
-  returnStoreData,
   setToken,
+  setUser,
+  setIsAuthenticated,
 } from "@/stores/appState";
+
 export default {
   name: "LoginComponent",
   data() {
     return {
       username: "",
       password: "",
+      loading: false,
+      error: null,
     };
   },
   methods: {
-    handleLogin() {
-      axios
-        .post(getBaseUrl() + "/api/login", {
+    async handleLogin() {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await axios.post(getBaseUrl() + "/login", {
           username: this.username,
           password: this.password,
-        })
-        .then((response) => {
-          console.log("Login successful:", response.data);
-
-          store.commit("setUser", response.data.user);
-          store.commit("setIsAuthenticated", true);
-
-          localStorage.setItem("token", response.data.access_token);
-          setToken(response.data.access_token);
-          console.log("Attempting to log in with:", {
-            returnStore: returnStoreData(),
-          });
-          // this.$router.push({ name: "home-alias" });
-        })
-        .catch((error) => {
-          console.error("Login failed:", error);
         });
+
+        console.log("Login successful:", response.data);
+
+        // Extract the token and user from response
+        const { access_token, user } = response.data;
+
+        // Check if we have both token and user
+        if (access_token && user) {
+          // Update store using proper helper functions
+          setToken(access_token); // This will also handle localStorage
+          setUser(user);
+          setIsAuthenticated(true);
+
+          this.$router.push({ name: "home" });
+        } else {
+          throw new Error("Invalid response format - missing token or user");
+        }
+      } catch (error) {
+        console.error("Login failed:", error);
+
+        // Clear any partial state
+        setToken("");
+        setUser({ id: null, username: "", role: "" });
+        setIsAuthenticated(false);
+
+        // Show error to user
+        this.error =
+          error.response?.data?.message ||
+          "Login failed. Please check your credentials.";
+      } finally {
+        this.loading = false;
+      }
     },
   },
 };

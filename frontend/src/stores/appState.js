@@ -1,9 +1,10 @@
+import axios from "axios";
 import Vuex from "vuex";
 
 const store = new Vuex.Store({
   state: {
-    BASEURL: "http://localhost:5000",
-    TOKEN: "",
+    BASEURL: "http://localhost:5000/api",
+    TOKEN: localStorage.getItem("token") || "",
     USER: {
       id: null,
       username: "",
@@ -30,10 +31,24 @@ const store = new Vuex.Store({
     setIsAuthenticated(state, isAuthenticated) {
       state.USER.isAuthenticated = isAuthenticated;
     },
+    clearUserState(state) {
+      state.TOKEN = "";
+      state.USER = {
+        id: null,
+        username: "",
+        role: "",
+        isAuthenticated: false,
+      };
+    },
   },
   actions: {
     updateToken({ commit }, token) {
       commit("setToken", token);
+      if (token) {
+        localStorage.setItem("token", token);
+      } else {
+        localStorage.removeItem("token");
+      }
     },
     updateUser({ commit }, user) {
       commit("setUser", user);
@@ -41,11 +56,16 @@ const store = new Vuex.Store({
     updateAuthentication({ commit }, isAuthenticated) {
       commit("setIsAuthenticated", isAuthenticated);
     },
+    clearAll({ commit }) {
+      commit("clearUserState");
+      localStorage.removeItem("token");
+    },
   },
 });
 
 export default store;
 
+// Helper functions
 export function getToken() {
   return store.state.TOKEN;
 }
@@ -62,22 +82,6 @@ export function getBaseUrl() {
   return store.state.BASEURL;
 }
 
-export function getUserId() {
-  return store.state.USER.id;
-}
-
-export function getUsername() {
-  return store.state.USER.username;
-}
-
-export function getEmail() {
-  return store.state.USER.email;
-}
-
-export function getRole() {
-  return store.state.USER.role;
-}
-
 export function setToken(token) {
   store.dispatch("updateToken", token);
 }
@@ -90,40 +94,43 @@ export function setIsAuthenticated(isAuthenticated) {
   store.dispatch("updateAuthentication", isAuthenticated);
 }
 
-export function setBaseUrl(baseUrl) {
-  store.state.BASEURL = baseUrl;
+export async function logout() {
+  try {
+    const token = store.state.TOKEN;
+
+    if (token) {
+      const response = await axios.post(
+        `${store.state.BASEURL}/logout`,
+        {
+          subject: token, // or whatever string the server expects
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Logout API response:", response.data);
+    } else {
+      console.log("No token found, skipping API call");
+    }
+  } catch (error) {
+    console.error("Logout API call failed:", error);
+  } finally {
+    console.log("Clearing client-side state...");
+    store.dispatch("clearAll");
+  }
+
+  return store.state.USER;
 }
 
-export function setUserId(id) {
-  store.state.USER.id = id;
-}
-
-export function setUsername(username) {
-  store.state.USER.username = username;
-}
-
-export function setEmail(email) {
-  store.state.USER.email = email;
-}
-
-export function setRole(role) {
-  store.state.USER.role = role;
-}
-
-export function logout() {
-  store.state.TOKEN = "";
-  store.state.USER = {
-    id: null,
-    username: "",
-    role: "",
-    isAuthenticated: false,
-  };
-}
 export async function make_getrequest(url, params = {}) {
-  // Build query string from params
   const queryString = Object.keys(params).length
     ? "?" + new URLSearchParams(params).toString()
     : "";
+
   const response = await fetch(`${store.state.BASEURL}${url}${queryString}`, {
     method: "GET",
     headers: {
@@ -131,9 +138,11 @@ export async function make_getrequest(url, params = {}) {
       Authorization: `Bearer ${store.state.TOKEN}`,
     },
   });
+
   if (!response.ok) {
     throw new Error("Network response was not ok");
   }
+
   const data = await response.json();
   return data;
 }
@@ -147,9 +156,11 @@ export async function make_postrequest(url, data = {}) {
     },
     body: JSON.stringify(data),
   });
+
   if (!response.ok) {
     throw new Error("Network response was not ok");
   }
+
   const responseData = await response.json();
   return responseData;
 }
@@ -160,4 +171,15 @@ export function returnStoreData() {
     TOKEN: store.state.TOKEN,
     USER: store.state.USER,
   };
+}
+
+// Initialize authentication state on app start
+export function initializeAuth() {
+  const token = localStorage.getItem("token");
+  if (token) {
+    store.dispatch("updateToken", token);
+    // You might want to validate the token here by making an API call
+    // For now, just set authenticated to true if token exists
+    store.dispatch("updateAuthentication", true);
+  }
 }

@@ -92,19 +92,16 @@ export default {
         document.getElementById("confirmPassword").style.borderColor = "red";
         return;
       }
-      // Here you would typically send the registration data to your backend
-      console.log("Registration data:", {
-        username: this.username,
-        password: this.password,
-        confirmPassword: this.confirmPassword,
-        fullname: this.fullname,
-        dateOfBirth: this.dateOfBirth,
-      });
-      // Add your registration logic here
+      // console.log("Registration data:", {
+      //   username: this.username,
+      //   password: this.password,
+      //   confirmPassword: this.confirmPassword,
+      //   fullname: this.fullname,
+      //   dateOfBirth: this.dateOfBirth,
+      // });
 
-      // Use axios directly for the registration request
       axios
-        .post(getBaseUrl() + "/api/register", {
+        .post(getBaseUrl() + "/register", {
           username: this.username,
           password: this.password,
           full_name: this.fullname,

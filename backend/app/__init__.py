@@ -1,14 +1,15 @@
 from datetime import datetime
 
-from app import worker
-from app.api import api
-from app.config import Config
-from app.models import User, db
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash
+
+from app import worker
+from app.api import api
+from app.config import Config
+from app.models import User, db
 
 
 def create_super_admin():
@@ -59,7 +60,16 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
     JWTManager(app)
-    CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}})
+    CORS(
+        app,
+        resources={
+            r"/*": {
+                "origins": "http://localhost:*",
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"],
+            }
+        },
+    )
 
     # Register  API resources
     api.init_app(app)

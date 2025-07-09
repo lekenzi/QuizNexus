@@ -1,12 +1,15 @@
 import email
+import logging
 from datetime import datetime
+
+from flask import g, make_response
+from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
+                                jwt_required)
+from flask_restful import Resource
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.api.validators import UserLoginParser, UserRegisterParser, testparser
 from app.models import User, db
-from flask import g, make_response
-from flask_jwt_extended import create_access_token, jwt_required
-from flask_restful import Resource
-from werkzeug.security import check_password_hash, generate_password_hash
 
 # class TestResource(Resource):
 #     @jwt_required()
@@ -52,7 +55,7 @@ class UserLoginResource(Resource):
             else:
 
                 access_token = create_access_token(
-                    identity={"id": user.id, "role": user.role}
+                    identity=str(user.id), additional_claims={"role": user.role}
                 )
 
         return make_response(
@@ -80,10 +83,10 @@ class UserRegisterResource(Resource):
 
         print(
             f"""s
-              {username}
-              {password}
-              {full_name}
-              {date_of_birth}
+                {username}
+                {password}
+                {full_name}
+                {date_of_birth}
         """
         )
 
@@ -104,7 +107,7 @@ class UserRegisterResource(Resource):
         db.session.commit()
 
         access_token = create_access_token(
-            identity={"id": new_user.id, "role": new_user.role}
+            identity=str(new_user.id),
         )
 
         return make_response(
@@ -125,12 +128,22 @@ class UserRegisterResource(Resource):
 class UserLogoutResource(Resource):
     @jwt_required()
     def post(self):
-        # Invalidate the access token by not returning it
-        # Flask-JWT-Extended handles token revocation automatically
-        # if you have set up a token blacklist, otherwise this is a no-op
-        # Here we just return a success message
-        g.jwt_identity = None  # Clear the current identity
-        return {"message": "User logged out successfully"}, 200
+        try:
+            jwt_claims = get_jwt()
+            jti = jwt_claims.get("jti")
+            current_user_id = get_jwt_identity()  # now a string like "1"
+            logging.info(f"User {current_user_id} logging out, JWT ID: {jti}")
+            return {
+                "message": "User logged out successfully",
+                "logged_out": True,
+                "user_id": current_user_id,
+            }, 200
+        except Exception as e:
+            logging.error(f"Logout error: {str(e)}")
+            return {
+                "message": "An error occurred while logging out",
+                "error": str(e),
+            }, 500
 
 
 class HomeResource(Resource):
