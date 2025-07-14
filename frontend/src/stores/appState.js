@@ -11,6 +11,7 @@ const store = new Vuex.Store({
       role: "",
       isAuthenticated: false,
     },
+    isTokenValidating: false,
   },
   getters: {
     getToken: (state) => state.TOKEN,
@@ -20,6 +21,7 @@ const store = new Vuex.Store({
     getUserId: (state) => state.USER.id,
     getUsername: (state) => state.USER.username,
     getRole: (state) => state.USER.role,
+    isTokenValidating: (state) => state.isTokenValidating,
   },
   mutations: {
     setToken(state, token) {
@@ -30,6 +32,9 @@ const store = new Vuex.Store({
     },
     setIsAuthenticated(state, isAuthenticated) {
       state.USER.isAuthenticated = isAuthenticated;
+    },
+    setTokenValidating(state, isValidating) {
+      state.isTokenValidating = isValidating;
     },
     clearUserState(state) {
       state.TOKEN = "";
@@ -60,12 +65,59 @@ const store = new Vuex.Store({
       commit("clearUserState");
       localStorage.removeItem("token");
     },
+
+    async validateToken({ commit, state }) {
+      const token = state.TOKEN;
+      if (!token) {
+        commit("setIsAuthenticated", false);
+        return false;
+      }
+
+      commit("setTokenValidating", true);
+
+      try {
+        const response = await axios.post(
+          `${state.BASEURL}/check_token_valid`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.status === 200) {
+          commit("setIsAuthenticated", true);
+
+          if (response.data.claims) {
+            const userInfo = {
+              id: response.data.claims.sub || response.data.claims.user_id,
+              username:
+                response.data.claims.username || response.data.claims.identity,
+              role: response.data.claims.role,
+            };
+            commit("setUser", userInfo);
+          }
+          return true;
+        } else {
+          throw new Error("Token validation failed");
+        }
+      } catch (error) {
+        console.error("Token validation error:", error);
+        commit("setIsAuthenticated", false);
+        commit("clearUserState");
+        localStorage.removeItem("token");
+        return false;
+      } finally {
+        commit("setTokenValidating", false);
+      }
+    },
   },
 });
 
 export default store;
 
-// Helper functions
 export function getToken() {
   return store.state.TOKEN;
 }
@@ -79,7 +131,7 @@ export function isAuthenticated() {
 }
 
 export function getBaseUrl() {
-  return store.state.BASEURL;
+  return store.getters.getBaseUrl;
 }
 
 export function setToken(token) {
@@ -94,6 +146,10 @@ export function setIsAuthenticated(isAuthenticated) {
   store.dispatch("updateAuthentication", isAuthenticated);
 }
 
+export function validateToken() {
+  return store.dispatch("validateToken");
+}
+
 export async function logout() {
   try {
     const token = store.state.TOKEN;
@@ -102,7 +158,7 @@ export async function logout() {
       const response = await axios.post(
         `${store.state.BASEURL}/logout`,
         {
-          subject: token, // or whatever string the server expects
+          subject: token,
         },
         {
           headers: {
@@ -138,7 +194,7 @@ export async function make_getrequest(url, params = {}) {
       Authorization: `Bearer ${store.state.TOKEN}`,
     },
   });
-
+  console.log("API call successful:", response.data);
   if (!response.ok) {
     throw new Error("Network response was not ok");
   }
@@ -148,11 +204,32 @@ export async function make_getrequest(url, params = {}) {
 }
 
 export async function make_postrequest(url, data = {}) {
+  const token = localStorage.getItem("token") || store.state.TOKEN;
   const response = await fetch(`${store.state.BASEURL}${url}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${store.state.TOKEN}`,
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Network response was not ok");
+  }
+  console.log("API call successful:", response);
+
+  const responseData = await response.json();
+  return responseData;
+}
+
+export async function make_putrequest(url, data = {}) {
+  const token = localStorage.getItem("token") || store.state.TOKEN;
+  const response = await fetch(`${store.state.BASEURL}${url}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
   });
@@ -173,13 +250,13 @@ export function returnStoreData() {
   };
 }
 
-// Initialize authentication state on app start
-export function initializeAuth() {
+export async function initializeAuth() {
   const token = localStorage.getItem("token");
   if (token) {
     store.dispatch("updateToken", token);
-    // You might want to validate the token here by making an API call
-    // For now, just set authenticated to true if token exists
-    store.dispatch("updateAuthentication", true);
+
+    const isValid = await store.dispatch("validateToken");
+    return isValid;
   }
+  return false;
 }

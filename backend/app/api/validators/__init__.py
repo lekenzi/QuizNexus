@@ -43,3 +43,54 @@ UserRegisterParser.add_argument(
     help="Date of birth is required",
     location="json",
 )
+
+
+checkTokenParser = reqparse.RequestParser()
+checkTokenParser.add_argument(
+    "access_token",
+    type=str,
+    required=False,
+    help="Access token",
+    location="json",
+)
+
+
+add_subject_parser = reqparse.RequestParser()
+add_subject_parser.add_argument(
+    "name",
+    type=str,
+    required=False,  # Changed to False for better error handling
+    help="Subject name is required",
+    location="json",
+)
+add_subject_parser.add_argument(
+    "description",
+    type=str,
+    required=False,  # Changed to False for better error handling
+    help="Subject description is required",
+    location="json",
+)
+
+
+add_chapter_parser = reqparse.RequestParser()
+add_chapter_parser.add_argument(
+    "name",
+    type=str,
+    required=False,  # Changed to False for better error handling
+    help="Chapter name is required",
+    location="json",
+)
+add_chapter_parser.add_argument(
+    "description",
+    type=str,
+    required=False,  # Changed to False for better error handling
+    help="Chapter description is required",
+    location="json",
+)
+add_chapter_parser.add_argument(
+    "subject_id",
+    type=int,
+    required=True,
+    help="Subject ID is required",
+    location="json",
+)

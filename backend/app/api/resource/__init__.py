@@ -2,40 +2,25 @@ import email
 import logging
 from datetime import datetime
 
-from app.api.validators import UserLoginParser, UserRegisterParser, testparser
-from app.models import User, db
-from flask import g, make_response
-from flask_jwt_extended import (
-    create_access_token,
-    get_jwt,
-    get_jwt_identity,
-    jwt_required,
-)
+from flask import g, make_response, request
+from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
+                                jwt_required)
 from flask_restful import Resource
 from werkzeug.security import check_password_hash, generate_password_hash
 
-# class TestResource(Resource):
-#     @jwt_required()
-#     def get(self):
-#         return {"message": "This is a test resource"}, 200
+from app.api.validators import (UserLoginParser, UserRegisterParser,
+                                add_subject_parser, checkTokenParser, add_chapter_parser)
+from app.middleware import jwt_auth_required, role_required
+from app.models import Chapter, Subject, User, db
 
-#     def post(self):
-#         args = testparser.parse_args()
-#         return {
-#             "message": f"This is a test resource for POST with test={args['test']}"
-#         }, 201
 
-#     def put(self):
-#         args = testparser.parse_args()
-#         return {
-#             "message": f"This is a test resource for PUT with test={args['test']}"
-#         }, 200
+class CheckTokenValidResource(Resource):
+    @jwt_auth_required
+    def post(self):
+        args = checkTokenParser.parse_args()
+        jwt_claims = get_jwt()
 
-#     def delete(self):
-#         args = testparser.parse_args()
-#         return {
-#             "message": f"This is a test resource for DELETE with test={args['test']}"
-#         }, 204
+        return {"message": "Token is valid", "claims": jwt_claims}, 200
 
 
 class UserLoginResource(Resource):
@@ -110,7 +95,7 @@ class UserRegisterResource(Resource):
         db.session.commit()
 
         access_token = create_access_token(
-            identity=str(new_user.id),
+            identity=str(new_user.id), additional_claims={"role": new_user.role}
         )
 
         return make_response(
@@ -129,7 +114,7 @@ class UserRegisterResource(Resource):
 
 
 class UserLogoutResource(Resource):
-    @jwt_required()
+    @jwt_auth_required
     def post(self):
         try:
             jwt_claims = get_jwt()
@@ -149,19 +134,186 @@ class UserLogoutResource(Resource):
             }, 500
 
 
-class HomeResource(Resource):
-    @jwt_required()
+class SubjectResources(Resource):
+    @jwt_auth_required
     def get(self):
-        return {"message": "Welcome to the Quiz Nexus API!"}, 200
+        subjects = Subject.query.all()
+        subjects_data = []
 
-    @jwt_required()
+        for subject in subjects:
+            subjects_data.append(
+            {
+                "subject_id": subject.id,
+                "subject_name": subject.name,
+                "subject_description": subject.description,
+            }
+            )
+
+        return {"subjects": subjects_data}, 200
+
+    @jwt_auth_required
+    @role_required(["admin"])
     def post(self):
-        return {"message": "This is a POST request to the home resource"}, 201
+        try:
+            logging.info("POST request received to /api/home")
+            logging.info(f"Request content type: {request.content_type}")
+            logging.info(f"Request data: {request.get_data(as_text=True)}")
 
-    @jwt_required()
-    def put(self):
-        return {"message": "This is a PUT request to the home resource"}, 200
+            # Check if request has JSON data
+            if not request.is_json:
+                return {"message": "Request must be JSON"}, 400
 
-    @jwt_required()
-    def delete(self):
-        return {"message": "This is a DELETE request to the home resource"}, 204
+            # Get JSON data
+            json_data = request.get_json()
+            logging.info(f"JSON data: {json_data}")
+
+            if not json_data:
+                return {"message": "No JSON data provided"}, 400
+
+            # Extract fields
+            subject_name = json_data.get("name")
+            subject_description = json_data.get("description")
+
+            # Check if required fields are present
+            if not subject_name:
+                logging.warning("Missing 'name' field in request")
+                return {"message": "Subject name is required"}, 400
+            if not subject_description:
+                logging.warning("Missing 'discription' field in request")
+                return {"message": "Subject description is required"}, 400
+
+            # Check if subject already exists
+            existing_subject = Subject.query.filter_by(name=subject_name).first()
+            if existing_subject:
+                return {"message": "Subject already exists"}, 400
+
+            # Create new subject
+            new_subject = Subject()
+            new_subject.name = subject_name
+            new_subject.description = subject_description
+
+            db.session.add(new_subject)
+            db.session.commit()
+
+            return {"message": "Subject created successfully"}, 201
+
+        except Exception as e:
+            logging.error(f"Error creating subject: {str(e)}")
+            logging.error(f"Exception type: {type(e).__name__}")
+            return {"message": f"Error creating subject: {str(e)}"}, 500
+
+    # @jwt_auth_required
+    # @role_required(["admin"])
+    # def patch(self):
+    #     args = add_subject_parser.parse_args()
+    #     subject_name = args["name"]
+    #     subject_description = args["discription"]
+    #     existing_subject = Subject.query.filter_by(name=subject_name).first()
+
+    #     if not existing_subject:
+    #         return {"message": "Subject not found"}, 404
+
+    #     existing_subject.description = subject_description
+    #     db.session.commit()
+
+    #     return {"message": "Subject updated successfully"}, 200
+
+    @jwt_auth_required
+    @role_required(["admin"])
+    def delete(self):   
+        args = add_subject_parser.parse_args()
+        subject_name = args["name"]
+        existing_subject = Subject.query.filter_by(name=subject_name).first()
+
+        if not existing_subject:
+            return {"message": "Subject not found"}, 404
+
+        db.session.delete(existing_subject)
+        db.session.commit()
+
+        return {"message": "Subject deleted successfully"}, 200
+
+
+class TestPostResource(Resource):
+    @jwt_auth_required
+    def post(self):
+        return {"message": "POST test successful", "data": "Hello from POST"}, 200
+
+    def get(self):
+        return {"message": "GET test successful", "data": "Hello from GET"}, 200
+
+
+class ChapterResources(Resource):
+    @jwt_auth_required
+    def get(self):
+        subject_id = request.args.get("subject_id", type=int)
+        if not subject_id:
+            return {"message": "Missing subject_id in query parameters"}, 400
+
+        chapters = Chapter.query.filter_by(subject_id=subject_id).all()
+        if not chapters:
+            return {"message": "No chapters found for the given subject"}, 404
+
+        chapters_data = [
+            {"id": chapter.id, "name": chapter.name} for chapter in chapters
+        ]
+
+        return {"data": {"subject_id": subject_id, "chapters": chapters_data}}, 200
+
+    @jwt_auth_required
+    @role_required(["admin"])
+    def post(self):
+        args = add_chapter_parser.parse_args()
+        chapter_name = args["name"]
+        chapter_description = args["description"]
+        subject_id = args["subject_id"]
+
+        if not chapter_name or not chapter_description:
+            return {"message": "Chapter name and description are required"}, 400
+
+        subject = Subject.query.get(subject_id)
+        if not subject:
+            return {"message": "Subject not found"}, 404
+
+        new_chapter = Chapter(
+            name=chapter_name, description=chapter_description, subject_id=subject_id
+        )
+        db.session.add(new_chapter)
+        db.session.commit()
+
+        return {
+            "message": "Chapter created successfully",
+            "chapter_id": new_chapter.id,
+        }, 201
+
+    @jwt_auth_required
+    @role_required(["admin"])
+    def patch(self, chapter_id):
+        args = request.get_json()
+        chapter_name = args.get("name")
+        chapter_description = args.get("description")
+
+        chapter = Chapter.query.get(chapter_id)
+        if not chapter:
+            return {"message": "Chapter not found"}, 404
+
+        if chapter_name:
+            chapter.name = chapter_name
+        if chapter_description:
+            chapter.description = chapter_description
+
+        db.session.commit()
+
+        return {"message": "Chapter updated successfully"}, 200
+
+    @jwt_auth_required
+    @role_required(["admin"])
+    def delete(self, chapter_id):
+        chapter = Chapter.query.get(chapter_id)
+        if not chapter:
+            return {"message": "Chapter not found"}, 404
+
+        db.session.delete(chapter)
+        db.session.commit()
+
+        return {"message": "Chapter deleted successfully"}, 200

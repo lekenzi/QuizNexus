@@ -3,6 +3,8 @@ import LoginComponent from "@/components/LandingPage/LoginComponent.vue";
 import HomeViewComponent from "@/components/admin/HomeViewComponent.vue";
 import RegisterComponent from "@/components/LandingPage/RegisterComponent.vue";
 import LandingPageComponent from "@/components/LandingPage/LandingPageComponent.vue";
+import { validateToken } from "@/stores/appState";
+
 const routes = [
   {
     path: "/login",
@@ -23,9 +25,7 @@ const routes = [
     path: "/home",
     name: "home",
     component: HomeViewComponent,
-    props: (route) => ({
-      returnStore: route.query.returnStore || null,
-    }),
+    meta: { requiresAuth: true },
   },
 ];
 
@@ -34,22 +34,31 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, _, next) => {
-  const isAuthenticated = localStorage.getItem("token") !== null;
+router.beforeEach(async (to, from, next) => {
+  if (to.meta.requiresAuth) {
+    const token = localStorage.getItem("token");
 
-  if (to.name !== "login" && to.name !== "register" && !isAuthenticated) {
-    next({ name: "login" });
+    if (!token) {
+      next({ name: "login" });
+      return;
+    }
+
+    try {
+      const isValid = await validateToken();
+
+      if (isValid) {
+        next();
+      } else {
+        next({ name: "login" });
+      }
+    } catch (error) {
+      console.error("Token validation failed:", error);
+
+      next({ name: "login" });
+    }
   } else {
     next();
   }
 });
-
-// router.beforeEach((to, from, next) => {
-//   if (to.matched.length === 0) {
-//     next({ name: "index" });
-//   } else {
-//     next();
-//   }
-// });
 
 export default router;

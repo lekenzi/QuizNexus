@@ -61,6 +61,8 @@ class Question(db.Model):
     answer = db.Column(db.String(140))
     quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"))
     marks = db.Column(db.Integer, default=1)
+    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"))
+    chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"))
 
     def __repr__(self):
         return "<Question {}>".format(self.question)
