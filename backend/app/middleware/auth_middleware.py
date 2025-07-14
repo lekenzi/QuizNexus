@@ -13,14 +13,12 @@ def jwt_auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         try:
-            
+
             verify_jwt_in_request()
 
-            
             jwt_claims = get_jwt()
             current_user_id = get_jwt_identity()
 
-            
             if not jwt_claims or not current_user_id:
                 return {
                     "message": "Invalid token",
@@ -28,7 +26,6 @@ def jwt_auth_required(f):
                     "error_code": "INVALID_TOKEN",
                 }, 401
 
-            
             if jwt_claims.get("exp", 0) < jwt_claims.get("iat", 0):
                 return {
                     "message": "Token has expired",
@@ -36,7 +33,6 @@ def jwt_auth_required(f):
                     "error_code": "TOKEN_EXPIRED",
                 }, 401
 
-            
             logging.info(f"User {current_user_id} authenticated successfully")
             return f(*args, **kwargs)
 
@@ -64,7 +60,7 @@ def role_required(required_roles):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             try:
-                
+
                 jwt_claims = get_jwt()
 
                 if not jwt_claims:
@@ -143,4 +139,4 @@ class AuthMiddleware:
         Global middleware to check authentication status
         Can be used to log authentication attempts, rate limiting, etc.
         """
-        pass  
+        pass

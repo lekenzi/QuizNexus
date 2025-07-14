@@ -2,16 +2,24 @@ import email
 import logging
 from datetime import datetime
 
-from flask import g, make_response, request
-from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
-                                jwt_required)
-from flask_restful import Resource
-from werkzeug.security import check_password_hash, generate_password_hash
-
-from app.api.validators import (UserLoginParser, UserRegisterParser,
-                                add_subject_parser, checkTokenParser, add_chapter_parser)
+from app.api.validators import (
+    UserLoginParser,
+    UserRegisterParser,
+    add_chapter_parser,
+    add_subject_parser,
+    checkTokenParser,
+)
 from app.middleware import jwt_auth_required, role_required
 from app.models import Chapter, Subject, User, db
+from flask import g, make_response, request
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+)
+from flask_restful import Resource
+from werkzeug.security import check_password_hash, generate_password_hash
 
 
 class CheckTokenValidResource(Resource):
@@ -142,11 +150,11 @@ class SubjectResources(Resource):
 
         for subject in subjects:
             subjects_data.append(
-            {
-                "subject_id": subject.id,
-                "subject_name": subject.name,
-                "subject_description": subject.description,
-            }
+                {
+                    "subject_id": subject.id,
+                    "subject_name": subject.name,
+                    "subject_description": subject.description,
+                }
             )
 
         return {"subjects": subjects_data}, 200
@@ -220,7 +228,7 @@ class SubjectResources(Resource):
 
     @jwt_auth_required
     @role_required(["admin"])
-    def delete(self):   
+    def delete(self):
         args = add_subject_parser.parse_args()
         subject_name = args["name"]
         existing_subject = Subject.query.filter_by(name=subject_name).first()
