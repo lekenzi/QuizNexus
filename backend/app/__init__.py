@@ -1,15 +1,14 @@
 from datetime import datetime
 
+from app import worker
+from app.api import api
+from app.config import Config
+from app.models import User, db
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash
-
-from app import worker
-from app.api import api
-from app.config import Config
-from app.models import User, db
 
 
 def create_super_admin():

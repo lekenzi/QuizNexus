@@ -2,17 +2,25 @@ import email
 import logging
 from datetime import datetime
 
+from app.api.validators import (
+    UserLoginParser,
+    UserRegisterParser,
+    add_chapter_parser,
+    add_quiz_parser,
+    add_subject_parser,
+    checkTokenParser,
+)
+from app.middleware import jwt_auth_required, role_required
+from app.models import Chapter, Question, Quiz, Subject, User, db
 from flask import make_response, request
-from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
-                                jwt_required)
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+)
 from flask_restful import Resource
 from werkzeug.security import generate_password_hash
-
-from app.api.validators import (UserLoginParser, UserRegisterParser,
-                                add_chapter_parser, add_quiz_parser,
-                                add_subject_parser, checkTokenParser)
-from app.middleware import jwt_auth_required, role_required
-from app.models import Chapter, Question, Quiz, Subject, User, Question, db
 
 
 class CheckTokenValidResource(Resource):
@@ -362,7 +370,9 @@ class QuizResources(Resource):
                     "subject_name": subject.name if subject else None,
                     "chapter_id": chapter.id if chapter else None,
                     "chapter_name": chapter.name if chapter else None,
-                    "number_of_questions": Question.query.filter_by(quiz_id=quiz.id).count(),
+                    "number_of_questions": Question.query.filter_by(
+                        quiz_id=quiz.id
+                    ).count(),
                 }
             )
 
