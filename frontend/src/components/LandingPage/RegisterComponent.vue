@@ -92,13 +92,6 @@ export default {
         document.getElementById("confirmPassword").style.borderColor = "red";
         return;
       }
-      // console.log("Registration data:", {
-      //   username: this.username,
-      //   password: this.password,
-      //   confirmPassword: this.confirmPassword,
-      //   fullname: this.fullname,
-      //   dateOfBirth: this.dateOfBirth,
-      // });
 
       axios
         .post(getBaseUrl() + "/register", {
@@ -107,13 +100,11 @@ export default {
           full_name: this.fullname,
           date_of_birth: this.dateOfBirth,
         })
-        .then((response) => {
-          console.log("Registration successful:", response.data);
+        .then(() => {
           alert("Registration successful! You can now log in.");
-          this.$router.push("/");
+          this.$router.push("/home");
         })
-        .catch((error) => {
-          console.error("Registration failed:", error);
+        .catch(() => {
           alert("Registration failed. Please try again.");
         });
     },

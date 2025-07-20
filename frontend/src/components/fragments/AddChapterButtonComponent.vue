@@ -90,11 +90,11 @@ export default {
           name: this.form.chapterName,
           description: this.form.description,
         });
-        console.log("API call successful:", response);
         this.$emit("chapter-added", response);
         this.showModal = false;
         this.form.chapterName = "";
         this.form.description = "";
+        this.$emit("refresh-chapters");
       } catch (error) {
         console.error("API call failed:", error);
       }

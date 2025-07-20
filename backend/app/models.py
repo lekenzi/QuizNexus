@@ -43,7 +43,9 @@ class Quiz(db.Model):
     )
     time_duration = db.Column(db.Integer, default=60, nullable=False)
     remarks = db.Column(db.String(140))
+    quiz_title = db.Column(db.String(140))
     chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"))
+    subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"))
     questions_id = db.relationship("Question", backref="quiz", lazy="dynamic")
 
     def __repr__(self):
@@ -63,6 +65,7 @@ class Question(db.Model):
     marks = db.Column(db.Integer, default=1)
     quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"))
     chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"))
+    subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"))
 
     def __repr__(self):
         return "<Question {}>".format(self.question)

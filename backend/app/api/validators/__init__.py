@@ -94,3 +94,48 @@ add_chapter_parser.add_argument(
     help="Subject ID is required",
     location="json",
 )
+
+
+add_quiz_parser = reqparse.RequestParser()
+add_quiz_parser.add_argument(
+    "title",
+    type=str,
+    required=True,
+    help="Quiz title is required",
+    location="json",
+)
+add_quiz_parser.add_argument(
+    "timeduration",
+    type=int,
+    required=True,
+    help="Time duration is required",
+    location="json",
+)
+add_quiz_parser.add_argument(
+    "remarks",
+    type=str,
+    required=False,
+    help="Remarks are optional",
+    location="json",
+)
+add_quiz_parser.add_argument(
+    "chapter_id",
+    type=int,
+    required=True,
+    help="Chapter ID is required",
+    location="json",
+)
+add_quiz_parser.add_argument(
+    "subject_id",
+    type=int,
+    required=True,
+    help="Subject ID is required",
+    location="json",
+)
+add_quiz_parser.add_argument(
+    "date",
+    type=str,
+    required=True,
+    help="Date is required",
+    location="json",
+)

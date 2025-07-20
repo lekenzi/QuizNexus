@@ -215,7 +215,7 @@ export async function make_postrequest(url, data = {}) {
   });
 
   if (!response.ok) {
-    throw new Error("Network response was not ok");
+    throw new Error("Network response was not ok", response);
   }
   console.log("API call successful:", response);
 

@@ -12,4 +12,4 @@ class Config:
     CACHE_DEFAULT_TIMEOUT = 300
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     CELERY_BROKER_URL = "redis://localhost:6379/0"
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=20)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=2)

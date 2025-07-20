@@ -1,6 +1,8 @@
 <template>
   <IndexPageNav />
-  <router-view />
+  <div style="">
+    <router-view style="position: fixed" />
+  </div>
 </template>
 <script>
 import IndexPageNav from "./components/LandingPage/IndexPageNav.vue";
@@ -28,6 +30,7 @@ html {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .greeting {

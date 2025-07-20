@@ -68,8 +68,6 @@ export default {
           password: this.password,
         });
 
-        console.log("Login successful:", response.data);
-
         // Extract the token and user from response
         const { access_token, user } = response.data;
 

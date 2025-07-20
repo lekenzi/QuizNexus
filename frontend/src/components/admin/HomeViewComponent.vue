@@ -5,6 +5,7 @@
         class="add-button"
         subject="Add Subject"
         @add="showModal = true"
+        @refresh-subjects="fetchSubjects"
       />
     </div>
 
@@ -36,7 +37,6 @@ export default {
           description: s.subject_description,
           id: s.subject_id,
         }));
-        console.log("Subjects fetched successfully:", this.subjects);
       } catch (error) {
         console.error("Failed to fetch subjects:", error);
       }

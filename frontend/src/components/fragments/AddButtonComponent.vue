@@ -79,11 +79,11 @@ export default {
           name: this.form.name,
           description: this.form.description,
         });
-        console.log("API call successful:", response);
         this.$emit("add", response);
         this.showModal = false;
         this.form.name = "";
         this.form.description = "";
+        this.$emit("refresh-subjects");
       } catch (error) {
         console.error("API call failed:", error);
       }

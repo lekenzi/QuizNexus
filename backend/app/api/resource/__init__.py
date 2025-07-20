@@ -2,24 +2,17 @@ import email
 import logging
 from datetime import datetime
 
-from app.api.validators import (
-    UserLoginParser,
-    UserRegisterParser,
-    add_chapter_parser,
-    add_subject_parser,
-    checkTokenParser,
-)
-from app.middleware import jwt_auth_required, role_required
-from app.models import Chapter, Subject, User, db
-from flask import g, make_response, request
-from flask_jwt_extended import (
-    create_access_token,
-    get_jwt,
-    get_jwt_identity,
-    jwt_required,
-)
+from flask import make_response, request
+from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
+                                jwt_required)
 from flask_restful import Resource
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
+
+from app.api.validators import (UserLoginParser, UserRegisterParser,
+                                add_chapter_parser, add_quiz_parser,
+                                add_subject_parser, checkTokenParser)
+from app.middleware import jwt_auth_required, role_required
+from app.models import Chapter, Question, Quiz, Subject, User, Question, db
 
 
 class CheckTokenValidResource(Resource):
@@ -325,3 +318,120 @@ class ChapterResources(Resource):
         db.session.commit()
 
         return {"message": "Chapter deleted successfully"}, 200
+
+
+class QuizResources(Resource):
+    @jwt_auth_required
+    @role_required(["admin"])
+    def get(self):
+        """
+        Return quizzes based on subject_id. If subject_id is 9999, return all quizzes.
+        {
+            quizzes: [
+                {
+                    quiz_id: 1,
+                    quiz_title: "Quiz 1",
+                    subject_id: 1,
+                    subject_name: "Mathematics",
+                    chapter_id: 1,
+                    chapter_name: "Algebra",
+                    number_of_questions: 10,
+                },
+                ...
+            ]
+        }
+        """
+        subject_id = request.args.get("subject_id", type=int)
+
+        if subject_id is None or subject_id == 9999:
+            quizzes = Quiz.query.all()
+        else:
+            quizzes = Quiz.query.filter_by(subject_id=subject_id).all()
+
+        quizzes_data = []
+
+        for quiz in quizzes:
+            subject = Subject.query.get(quiz.subject_id)
+            chapter = Chapter.query.get(quiz.chapter_id)
+
+            quizzes_data.append(
+                {
+                    "quiz_id": quiz.id,
+                    "quiz_title": quiz.quiz_title,
+                    "subject_id": subject.id if subject else None,
+                    "subject_name": subject.name if subject else None,
+                    "chapter_id": chapter.id if chapter else None,
+                    "chapter_name": chapter.name if chapter else None,
+                    "number_of_questions": Question.query.filter_by(quiz_id=quiz.id).count(),
+                }
+            )
+
+        return {"quizzes": quizzes_data}, 200
+
+    @jwt_auth_required
+    @role_required(["admin"])
+    def post(self):
+        """
+        Create a new quiz with the following JSON structure:
+            {title: 'hello', remarks: 'jhvjhv', timeduration: '1', date: '2025-07-15', subject_id: 2, …}
+            chapter_id
+            :
+            2
+            date
+            :
+            "2025-07-15"
+            remarks
+            :
+            "jhvjhv"
+            subject_id
+            :
+            2
+            timeduration
+            :
+            "1"
+            title
+            :
+            "hello"
+        """
+        args = add_quiz_parser.parse_args()
+        # log args for debugging
+        logging.info(f"Received args for quiz creation: {args}")
+        quiz_title = args["title"]
+        time_duration = args["timeduration"]
+        chapter_id = args["chapter_id"]
+        subject_id = args["subject_id"]
+        date = args["date"]
+        remarks = args["remarks"]
+
+        if not quiz_title or not time_duration or not chapter_id or not subject_id:
+            return {
+                "message": "Quiz title, time duration, chapter ID, and subject ID are required"
+            }, 400
+
+        chapter = Chapter.query.get(chapter_id)
+        if not chapter:
+            return {"message": "Chapter not found"}, 404
+
+        subject = Subject.query.get(subject_id)
+        if not subject:
+            return {"message": "Subject not found"}, 404
+
+        # Convert date string to Python datetime object
+        try:
+            date_of_quiz = datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            return {"message": "Invalid date format. Use YYYY-MM-DD."}, 400
+
+        new_quiz = Quiz(
+            quiz_title=quiz_title,
+            time_duration=time_duration,
+            chapter_id=chapter_id,
+            subject_id=subject_id,
+            date_of_quiz=date_of_quiz,
+            remarks=remarks,
+        )
+
+        db.session.add(new_quiz)
+        db.session.commit()
+
+        return {"message": "Quiz created successfully", "quiz_id": new_quiz.id}, 201

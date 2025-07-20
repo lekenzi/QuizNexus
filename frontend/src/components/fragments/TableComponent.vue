@@ -24,7 +24,11 @@
             </tr>
           </tbody>
         </table>
-        <AddChapterButtonComponent :subject="subject" :key="subject.id" />
+        <AddChapterButtonComponent
+          :subject="subject"
+          :key="subject.id"
+          @refresh-chapters="fetchChapters"
+        />
       </div>
     </div>
   </div>
@@ -62,7 +66,6 @@ export default {
           name: chap.name,
           questions: 0, // Default or fetch actual question count if available
         }));
-        console.log("Chapters fetched successfully:", this.chapters);
       } catch (error) {
         console.error("Failed to fetch chapters:", error);
       }
