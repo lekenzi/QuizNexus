@@ -480,4 +480,3 @@ class QuestionResources(Resource):
     # @jwt_auth_required
     # @role_required(["admin"])
     # def post(self):
-        
