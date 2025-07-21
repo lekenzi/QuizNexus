@@ -351,7 +351,7 @@ class QuizResources(Resource):
         """
         subject_id = request.args.get("subject_id", type=int)
 
-        if subject_id is None or subject_id == 9999:
+        if subject_id is None or subject_id == 99999:
             quizzes = Quiz.query.all()
         else:
             quizzes = Quiz.query.filter_by(subject_id=subject_id).all()
@@ -445,3 +445,39 @@ class QuizResources(Resource):
         db.session.commit()
 
         return {"message": "Quiz created successfully", "quiz_id": new_quiz.id}, 201
+
+
+class QuestionResources(Resource):
+    @jwt_auth_required
+    @role_required(["admin"])
+    def get(self):
+        quiz_id = request.args.get("quiz_id", type=int)
+        if not quiz_id:
+            return {"message": "Missing quiz_id in query parameters"}, 400
+
+        questions = Question.query.filter_by(quiz_id=quiz_id).all()
+        if not questions:
+            return {"message": "No questions found for the given quiz"}, 404
+
+        questions_data = [
+            {
+                "id": question.id,
+                "question": question.question,
+                "options": [
+                    question.option1,
+                    question.option2,
+                    question.option3,
+                    question.option4,
+                ],
+                "answer": question.answer,
+                "marks": question.marks,
+            }
+            for question in questions
+        ]
+
+        return {"data": {"quiz_id": quiz_id, "questions": questions_data}}, 200
+
+    # @jwt_auth_required
+    # @role_required(["admin"])
+    # def post(self):
+        

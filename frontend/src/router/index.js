@@ -34,6 +34,7 @@ const routes = [
     name: "quizzes",
     component: QuizesViewComponent,
     meta: { requiresAuth: true },
+    redirect: { name: "all_quizzes" }, // Default route when "quizzes" is clicked
     children: [
       {
         path: "all_quizzes",
@@ -41,8 +42,9 @@ const routes = [
         index: true,
         component: QuizSubDisplay,
         props: () => ({
-          filter: "all",
+          subject_id: null,
         }),
+        key: "all_quizzes",
       },
       {
         path: "subject/:subject_id",
@@ -51,6 +53,7 @@ const routes = [
         props: (route) => ({
           subject_id: parseInt(route.params.subject_id),
         }),
+        key: (route) => `subject-${route.params.subject_id}`,
       },
       // {
       //   path: "quiz/:quiz_id",

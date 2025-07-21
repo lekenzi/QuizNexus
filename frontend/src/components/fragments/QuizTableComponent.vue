@@ -17,14 +17,18 @@
         </p>
       </div>
     </div>
-    <button>Add Questions</button>
-    <div class="card-footer text-center">
-      <small class="text-muted">Quiz details: {{ quizzes }}</small>
-    </div>
+    <AddQuestionsToQuizzesModal
+      :quiz_id="quizzes.quiz_id"
+      :subject_id="quizzes.subject_id"
+      :chapter_id="quizzes.chapter_id"
+      :chapter_name="quizzes.chapter_name"
+      :quiz_title="quizzes.quiz_title"
+    />
   </div>
 </template>
 
 <script>
+import AddQuestionsToQuizzesModal from "@/components/fragments/AddQuestionsToQuizzesModal.vue";
 export default {
   name: "QuizTableComponent",
   props: {
@@ -35,6 +39,9 @@ export default {
   },
   mounted() {
     console.log("Quizzes in QuizTableComponent:", this.quizzes);
+  },
+  components: {
+    AddQuestionsToQuizzesModal,
   },
 };
 </script>

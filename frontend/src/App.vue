@@ -1,7 +1,15 @@
 <template>
   <IndexPageNav />
   <div style="">
-    <router-view style="position: fixed" />
+    <router-view
+      style="
+        position: fixed;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      "
+    />
   </div>
 </template>
 <script>

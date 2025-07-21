@@ -146,6 +146,6 @@ export default {
   color: #007bff !important;
 }
 body {
-  padding-top: 200px; /* Adjust this value to prevent content from being hidden behind the fixed navbar */
+  padding-top: 200px;
 }
 </style>

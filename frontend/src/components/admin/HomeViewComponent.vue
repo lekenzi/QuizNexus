@@ -1,5 +1,5 @@
 <template>
-  <div class="subjects-grid">
+  <div class="subjects-grid container">
     <div class="d-flex justify-content-center my-4">
       <AddButtonComponent
         class="add-button"
@@ -9,8 +9,10 @@
       />
     </div>
 
-    <div class="subject-card" v-for="subject in subjects" :key="subject.name">
-      <TableComponent :subject="subject" />
+    <div class="row">
+      <div v-for="subject in subjects" :key="subject.id">
+        <TableComponent :subject="subject" />
+      </div>
     </div>
   </div>
 </template>
@@ -51,3 +53,17 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.subjects-grid {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.subject-card {
+  margin: 10px 0;
+}
+</style>

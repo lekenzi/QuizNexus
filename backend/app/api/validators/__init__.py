@@ -139,3 +139,76 @@ add_quiz_parser.add_argument(
     help="Date is required",
     location="json",
 )
+
+
+questions_add_parser = reqparse.RequestParser()
+questions_add_parser.add_argument(
+    "question",
+    type=str,
+    required=True,
+    help="Question is required",
+    location="json",
+)
+questions_add_parser.add_argument(
+    "option1",
+    type=str,
+    required=True,
+    help="Option 1 is required",
+    location="json",
+)
+questions_add_parser.add_argument(
+    "option2",
+    type=str,
+    required=True,
+    help="Option 2 is required",
+    location="json",
+)
+questions_add_parser.add_argument(
+    "option3",
+    type=str,
+    required=True,
+    help="Option 3 is required",
+    location="json",
+)
+questions_add_parser.add_argument(
+    "option4",
+    type=str,
+    required=True,
+    help="Option 4 is required",
+    location="json",
+)
+questions_add_parser.add_argument(
+    "answer",
+    type=str,
+    required=True,
+    help="Answer is required",
+    location="json",
+)
+questions_add_parser.add_argument(
+    "marks",
+    type=int,
+    required=False,
+    help="Marks are optional, default is 1",
+    location="json",
+)
+questions_add_parser.add_argument(
+    "quiz_id",
+    type=int,
+    required=True,
+    help="Quiz ID is required",
+    location="json",
+)
+questions_add_parser.add_argument(
+    "chapter_id",
+    type=int,
+    required=True,
+    help="Chapter ID is required",
+    location="json",
+)
+questions_add_parser.add_argument(
+    "subject_id",
+    type=int,
+    required=True,
+    help="Subject ID is required",
+    location="json",
+)

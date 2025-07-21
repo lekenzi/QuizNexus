@@ -15,7 +15,6 @@
       />
     </div>
 
-    <!-- Search Bar -->
     <div class="p-3">
       <input
         type="text"
@@ -100,6 +99,15 @@ export default {
   mounted() {
     this.getAllSubjects();
     console.log("Quizzes in QuizzesSideNavBar:", this.quizzes);
+  },
+  watch: {
+    $route: {
+      immediate: true,
+      handler() {
+        this.getAllSubjects();
+        this.$emit("refresh-quizzes");
+      },
+    },
   },
 };
 </script>
