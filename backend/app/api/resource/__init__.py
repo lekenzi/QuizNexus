@@ -2,25 +2,20 @@ import email
 import logging
 from datetime import datetime
 
-from app.api.validators import (
-    UserLoginParser,
-    UserRegisterParser,
-    add_chapter_parser,
-    add_quiz_parser,
-    add_subject_parser,
-    checkTokenParser,
-)
-from app.middleware import jwt_auth_required, role_required
-from app.models import Chapter, Question, Quiz, Subject, User, db
+from celery import chain
 from flask import make_response, request
-from flask_jwt_extended import (
-    create_access_token,
-    get_jwt,
-    get_jwt_identity,
-    jwt_required,
-)
+from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
+                                jwt_required)
 from flask_restful import Resource
+import jwt
 from werkzeug.security import generate_password_hash
+
+from app.api.validators import (UserLoginParser, UserRegisterParser,
+                                add_chapter_parser, add_quiz_parser,
+                                add_subject_parser, checkTokenParser,
+                                questions_add_parser)
+from app.middleware import jwt_auth_required, role_required, optional_jwt_auth
+from app.models import Chapter, Question, Quiz, Subject, User, db
 
 
 class CheckTokenValidResource(Resource):
@@ -30,6 +25,17 @@ class CheckTokenValidResource(Resource):
         jwt_claims = get_jwt()
 
         return {"message": "Token is valid", "claims": jwt_claims}, 200
+
+    @jwt_auth_required
+    def get(self):
+        """returns role of the user
+
+        Keyword arguments:
+        argument -- description
+        Return: return_description
+        """
+        jwt_claims = get_jwt()
+        return {"role": jwt_claims.get("role")}, 200
 
 
 class UserLoginResource(Resource):
@@ -145,6 +151,7 @@ class UserLogoutResource(Resource):
 
 class SubjectResources(Resource):
     @jwt_auth_required
+    @optional_jwt_auth
     def get(self):
         subjects = Subject.query.all()
         subjects_data = []
@@ -329,6 +336,7 @@ class ChapterResources(Resource):
 
 
 class QuizResources(Resource):
+
     @jwt_auth_required
     @role_required(["admin"])
     def get(self):
@@ -446,6 +454,28 @@ class QuizResources(Resource):
 
         return {"message": "Quiz created successfully", "quiz_id": new_quiz.id}, 201
 
+    @jwt_auth_required
+    @role_required(["admin"])
+    def delete(self):
+        """
+        Delete a quiz by its ID.
+        Expects a JSON body with the quiz_id to delete.
+        """
+        args = request.get_json()
+        quiz_id = args.get("quiz_id")
+
+        if not quiz_id:
+            return {"message": "Quiz ID is required"}, 400
+
+        quiz = Quiz.query.get(quiz_id)
+        if not quiz:
+            return {"message": "Quiz not found"}, 404
+
+        db.session.delete(quiz)
+        db.session.commit()
+
+        return {"message": "Quiz deleted successfully"}, 200
+
 
 class QuestionResources(Resource):
     @jwt_auth_required
@@ -457,7 +487,7 @@ class QuestionResources(Resource):
 
         questions = Question.query.filter_by(quiz_id=quiz_id).all()
         if not questions:
-            return {"message": "No questions found for the given quiz"}, 404
+            return {"data": {"quiz_id": quiz_id, "questions": []}}, 200
 
         questions_data = [
             {
@@ -477,6 +507,66 @@ class QuestionResources(Resource):
 
         return {"data": {"quiz_id": quiz_id, "questions": questions_data}}, 200
 
-    # @jwt_auth_required
-    # @role_required(["admin"])
-    # def post(self):
+    @jwt_auth_required
+    @role_required(["admin"])
+    def post(self):
+        args = questions_add_parser.parse_args()
+        question_text = args["question"]
+        option1 = args["option1"]
+        option2 = args["option2"]
+        option3 = args["option3"]
+        option4 = args["option4"]
+        answer = args["answer"]
+        marks = args["marks"]
+        quiz_id = args["quiz_id"]
+        chapter_id = args.get("chapter_id")
+        subject_id = args.get("subject_id")
+
+        if not question_text or not option1 or not option2 or not answer or not quiz_id:
+            return {"message": "All fields are required"}, 400
+
+        quiz = Quiz.query.get(quiz_id)
+        if not quiz:
+            return {"message": "Quiz not found"}, 404
+
+        new_question = Question(
+            question=question_text,
+            option1=option1,
+            option2=option2,
+            option3=option3,
+            option4=option4,
+            answer=answer,
+            marks=marks,
+            quiz_id=quiz_id,
+            chapter_id=chapter_id,
+            subject_id=subject_id,
+        )
+
+        db.session.add(new_question)
+        db.session.commit()
+
+        return {
+            "message": "Question added successfully",
+            "question_id": new_question.id,
+        }, 201
+
+
+class UserDashboardResource(Resource):
+    @jwt_auth_required
+    @role_required(["user"])
+    def get(self):
+        '''
+            return all the quizzes from the time the user started
+        '''
+        quizzes = Quiz.query.all()
+        quizzes_data = []
+        for quiz in quizzes:
+            quizzes_data.append({
+                "id": quiz.id,
+                "title": quiz.quiz_title,
+                "date": quiz.date_of_quiz,
+                "duration": quiz.time_duration,
+                "chapter": quiz.chapter_id,
+                "subject": quiz.subject_id,
+            })
+        return {"data": quizzes_data}, 200

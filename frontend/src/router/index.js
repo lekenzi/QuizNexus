@@ -6,7 +6,10 @@ import LandingPageComponent from "@/components/LandingPage/LandingPageComponent.
 import QuizesViewComponent from "@/components/admin/QuizesViewComponent.vue";
 import SummaryViewComponent from "@/components/summary/SummaryViewComponent.vue";
 import QuizSubDisplay from "@/components/fragments/QuizSubDisplay.vue";
-import { validateToken } from "@/stores/appState";
+import { validateToken, getUserrole } from "@/stores/appState";
+import UserDashBoardView from "@/components/users/UserDashBoardView.vue";
+import UnauthorisedComponent from "@/components/unauthorised/UnauthorisedComponent.vue";
+
 const routes = [
   {
     path: "/login",
@@ -27,24 +30,36 @@ const routes = [
     path: "/home",
     name: "home",
     component: HomeViewComponent,
-    meta: { requiresAuth: true },
+    meta: {
+      requiresAuth: true,
+      roleComponents: {
+        admin: HomeViewComponent,
+        user: UserDashBoardView,
+      },
+    },
   },
   {
     path: "/quizzes",
     name: "quizzes",
     component: QuizesViewComponent,
-    meta: { requiresAuth: true },
-    redirect: { name: "all_quizzes" }, // Default route when "quizzes" is clicked
+    meta: {
+      requiresAuth: true,
+      roleComponents: { admin: QuizesViewComponent },
+    },
+    redirect: { name: "all_quizzes" },
     children: [
       {
-        path: "all_quizzes",
+        path: "",
         name: "all_quizzes",
-        index: true,
         component: QuizSubDisplay,
         props: () => ({
           subject_id: null,
         }),
-        key: "all_quizzes",
+        meta: {
+          roleComponents: {
+            admin: QuizSubDisplay,
+          },
+        },
       },
       {
         path: "subject/:subject_id",
@@ -53,23 +68,32 @@ const routes = [
         props: (route) => ({
           subject_id: parseInt(route.params.subject_id),
         }),
-        key: (route) => `subject-${route.params.subject_id}`,
+        meta: {
+          roleComponents: {
+            admin: QuizSubDisplay,
+          },
+        },
       },
-      // {
-      //   path: "quiz/:quiz_id",
-      //   name: "quiz_detail",
-      //   component: QuizDetailComponent, // Create this component for individual quiz
-      //   props: (route) => ({
-      //     quiz_id: parseInt(route.params.quiz_id),
-      //   }),
-      // },
     ],
   },
   {
     name: "summary",
     path: "/summary",
     component: SummaryViewComponent,
-    meta: { requiresAuth: true },
+    meta: {
+      requiresAuth: true,
+      roleComponents: { admin: SummaryViewComponent },
+    },
+  },
+  {
+    path: "/unauthorized",
+    name: "unauthorized",
+    component: () => UnauthorisedComponent,
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "notfound",
+    redirect: { name: "index" },
   },
 ];
 
@@ -90,14 +114,33 @@ router.beforeEach(async (to, from, next) => {
     try {
       const isValid = await validateToken();
 
-      if (isValid) {
-        next();
-      } else {
+      if (!isValid) {
         next({ name: "login" });
+        return;
       }
+
+      if (to.meta.requiredRole) {
+        const userRole = await getUserrole();
+        console.log("User role:", userRole);
+
+        if (userRole !== to.meta.requiredRole) {
+          next({ name: "unauthorized" });
+          return;
+        }
+      }
+
+      if (to.meta.roleComponents) {
+        const userRole = await getUserrole();
+
+        if (!to.meta.roleComponents[userRole]) {
+          next({ name: "unauthorized" });
+          return;
+        }
+      }
+
+      next();
     } catch (error) {
       console.error("Token validation failed:", error);
-
       next({ name: "login" });
     }
   } else if (
@@ -114,10 +157,9 @@ router.beforeEach(async (to, from, next) => {
     } catch (error) {
       console.error("Token validation failed:", error);
     }
-    // next({ name: "home" }); // Uncomment this line if you want to redirect logged-in users from login/register/index to home
-  } else {
-    next();
   }
+
+  next();
 });
 
 export default router;

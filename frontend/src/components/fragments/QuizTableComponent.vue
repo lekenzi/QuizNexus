@@ -17,18 +17,17 @@
         </p>
       </div>
     </div>
-    <AddQuestionsToQuizzesModal
-      :quiz_id="quizzes.quiz_id"
-      :subject_id="quizzes.subject_id"
-      :chapter_id="quizzes.chapter_id"
-      :chapter_name="quizzes.chapter_name"
-      :quiz_title="quizzes.quiz_title"
-    />
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <ViewAndAddQuestionsModal :quiz="quizzes" />
+      <button class="btn btn-danger" @click="$emit('delete-quiz', quizzes)">
+        <i class="fas fa-trash-alt"></i> Delete Quiz
+      </button>
+    </div>
   </div>
 </template>
 
 <script>
-import AddQuestionsToQuizzesModal from "@/components/fragments/AddQuestionsToQuizzesModal.vue";
+import ViewAndAddQuestionsModal from "@/components/fragments/ViewAndAddQuestionsModal.vue";
 export default {
   name: "QuizTableComponent",
   props: {
@@ -37,11 +36,8 @@ export default {
       default: () => ({}),
     },
   },
-  mounted() {
-    console.log("Quizzes in QuizTableComponent:", this.quizzes);
-  },
   components: {
-    AddQuestionsToQuizzesModal,
+    ViewAndAddQuestionsModal,
   },
 };
 </script>

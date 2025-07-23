@@ -118,7 +118,6 @@ export default {
       try {
         await logout();
         router.push("/login");
-        console.log("User logged out successfully.");
       } catch (error) {
         console.error("Logout failed:", error);
         router.push("/login");

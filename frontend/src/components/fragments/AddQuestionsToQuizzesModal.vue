@@ -149,10 +149,16 @@ export default {
           chapter_id: this.chapter_id,
           subject_id: this.subject_id,
         };
-        await make_postrequest("/questions", payload);
-        alert("Question added successfully!");
-        this.showModal = false;
-        this.resetForm();
+        const response = await make_postrequest("/questions", payload);
+        if (response.status === 201) {
+          console.log("Question added successfully:", response.data);
+          alert("Question added successfully!");
+          this.showModal = false;
+          this.resetForm();
+        } else {
+          console.error("Failed to add question:", response.data);
+          alert("Failed to add question.");
+        }
       } catch (error) {
         console.error("Error adding question:", error);
         alert("Failed to add question.");

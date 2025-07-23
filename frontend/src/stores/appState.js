@@ -113,6 +113,32 @@ const store = new Vuex.Store({
         commit("setTokenValidating", false);
       }
     },
+    async getUserrole({ state }) {
+      const token = state.TOKEN;
+      if (!token) {
+        throw new Error("No token available");
+      }
+
+      try {
+        const response = await axios.get(`${state.BASEURL}/check_token_valid`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.status === 200 && response.data.role) {
+          // console.log("User role fetched successfully:", response.data.role);
+
+          return response.data.role;
+        } else {
+          throw new Error("Failed to fetch user role");
+        }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+        throw error;
+      }
+    },
   },
 });
 
@@ -150,12 +176,16 @@ export function validateToken() {
   return store.dispatch("validateToken");
 }
 
+export function getUserrole() {
+  return store.dispatch("getUserrole");
+}
+
 export async function logout() {
   try {
     const token = store.state.TOKEN;
 
     if (token) {
-      const response = await axios.post(
+      await axios.post(
         `${store.state.BASEURL}/logout`,
         {
           subject: token,
@@ -167,15 +197,10 @@ export async function logout() {
           },
         }
       );
-
-      console.log("Logout API response:", response.data);
-    } else {
-      console.log("No token found, skipping API call");
     }
   } catch (error) {
     console.error("Logout API call failed:", error);
   } finally {
-    console.log("Clearing client-side state...");
     store.dispatch("clearAll");
   }
 
@@ -194,7 +219,7 @@ export async function make_getrequest(url, params = {}) {
       Authorization: `Bearer ${store.state.TOKEN}`,
     },
   });
-  console.log("API call successful:", response.data);
+  console.log("make_getrequest called with URL:", response);
   if (!response.ok) {
     throw new Error("Network response was not ok");
   }
@@ -215,9 +240,8 @@ export async function make_postrequest(url, data = {}) {
   });
 
   if (!response.ok) {
-    throw new Error("Network response was not ok", response);
+    throw new Error("Network response was not ok", await response.json());
   }
-  console.log("API call successful:", response);
 
   const responseData = await response.json();
   return responseData;
