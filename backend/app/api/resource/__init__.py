@@ -3,19 +3,27 @@ import logging
 from datetime import datetime
 
 import jwt
-from celery import chain
-from flask import make_response, request
-from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
-                                jwt_required)
-from flask_restful import Resource
-from werkzeug.security import generate_password_hash
-
-from app.api.validators import (UserLoginParser, UserRegisterParser,
-                                add_chapter_parser, add_quiz_parser,
-                                add_subject_parser, checkTokenParser,
-                                questions_add_parser)
+from app.api.validators import (
+    UserLoginParser,
+    UserRegisterParser,
+    add_chapter_parser,
+    add_quiz_parser,
+    add_subject_parser,
+    checkTokenParser,
+    questions_add_parser,
+)
 from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
 from app.models import Chapter, Question, Quiz, Subject, User, db
+from celery import chain
+from flask import make_response, request
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+)
+from flask_restful import Resource
+from werkzeug.security import generate_password_hash
 
 
 class CheckTokenValidResource(Resource):

@@ -6,10 +6,7 @@ from functools import wraps
 import redis
 from flask import current_app
 
-
-redis_client = redis.Redis(
-    host="localhost", port=6379, db=1, decode_responses=True
-)
+redis_client = redis.Redis(host="localhost", port=6379, db=1, decode_responses=True)
 
 
 def cache_key_generator(*args, **kwargs):
@@ -24,10 +21,9 @@ def cache_result(expiration=300):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            
+
             cache_key = f"{func.__name__}:{cache_key_generator(*args, **kwargs)}"
 
-            
             try:
                 cached_result = redis_client.get(cache_key)
                 if cached_result:
@@ -35,10 +31,8 @@ def cache_result(expiration=300):
             except Exception as e:
                 print(f"Cache get error: {e}")
 
-            
             result = func(*args, **kwargs)
 
-            
             try:
                 redis_client.setex(
                     cache_key, expiration, json.dumps(result, default=str)
@@ -120,36 +114,34 @@ class CacheManager:
         invalidate_cache("subjects:*")
 
 
-
 def rate_limit(max_requests=100, window=3600):
     """Rate limiting decorator"""
 
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            
-            client_ip = "127.0.0.1"  
 
-            
+            client_ip = "127.0.0.1"
+
             rate_key = f"rate_limit:{client_ip}:{func.__name__}"
 
             try:
-                
+
                 current_requests = redis_client.get(rate_key)
 
                 if current_requests is None:
-                    
+
                     redis_client.setex(rate_key, window, 1)
                 elif int(current_requests) >= max_requests:
-                    
+
                     return {"error": "Rate limit exceeded"}, 429
                 else:
-                    
+
                     redis_client.incr(rate_key)
 
             except Exception as e:
                 print(f"Rate limiting error: {e}")
-                
+
                 pass
 
             return func(*args, **kwargs)

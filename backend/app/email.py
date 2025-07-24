@@ -26,8 +26,8 @@ def configure_mail(app):
     app.config["MAIL_SERVER"] = "smtp.gmail.com"
     app.config["MAIL_PORT"] = 587
     app.config["MAIL_USE_TLS"] = True
-    app.config["MAIL_USERNAME"] = "your_email@gmail.com"  
-    app.config["MAIL_PASSWORD"] = "your_app_password"  
+    app.config["MAIL_USERNAME"] = "your_email@gmail.com"
+    app.config["MAIL_PASSWORD"] = "your_app_password"
     app.config["MAIL_DEFAULT_SENDER"] = "noreply@example.com"
 
     mail = Mail(app)
@@ -217,18 +217,18 @@ def send_email(to_email, subject, body, is_html=False):
     """Send email using SMTP"""
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    smtp_user = "your_email@gmail.com"  
-    smtp_password = "your_app_password"  
+    smtp_user = "your_email@gmail.com"
+    smtp_password = "your_app_password"
 
     msg = MIMEMultipart()
-    msg['From'] = smtp_user
-    msg['To'] = to_email
-    msg['Subject'] = subject
+    msg["From"] = smtp_user
+    msg["To"] = to_email
+    msg["Subject"] = subject
 
     if is_html:
-        msg.attach(MIMEText(body, 'html'))
+        msg.attach(MIMEText(body, "html"))
     else:
-        msg.attach(MIMEText(body, 'plain'))
+        msg.attach(MIMEText(body, "plain"))
 
     try:
         server = smtplib.SMTP(smtp_server, smtp_port)
@@ -246,23 +246,20 @@ def send_email_with_attachment(to_email, subject, body, attachment_data, filenam
     """Send email with CSV attachment"""
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    smtp_user = "your_email@gmail.com"  
-    smtp_password = "your_app_password"  
+    smtp_user = "your_email@gmail.com"
+    smtp_password = "your_app_password"
 
     msg = MIMEMultipart()
-    msg['From'] = smtp_user
-    msg['To'] = to_email
-    msg['Subject'] = subject
+    msg["From"] = smtp_user
+    msg["To"] = to_email
+    msg["Subject"] = subject
 
-    msg.attach(MIMEText(body, 'plain'))
+    msg.attach(MIMEText(body, "plain"))
 
-    part = MIMEBase('application', 'octet-stream')
+    part = MIMEBase("application", "octet-stream")
     part.set_payload(attachment_data.encode())
     encoders.encode_base64(part)
-    part.add_header(
-        'Content-Disposition',
-        f'attachment; filename= {filename}'
-    )
+    part.add_header("Content-Disposition", f"attachment; filename= {filename}")
     msg.attach(part)
 
     try:

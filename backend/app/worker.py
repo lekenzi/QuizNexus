@@ -1,7 +1,9 @@
-from celery import Celery
-from flask import Flask
 import os
 from datetime import timedelta
+
+from celery import Celery
+from flask import Flask
+
 
 def make_celery(app):
     celery = Celery(
