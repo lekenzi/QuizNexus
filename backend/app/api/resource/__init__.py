@@ -3,27 +3,19 @@ import logging
 from datetime import datetime
 
 import jwt
-from app.api.validators import (
-    UserLoginParser,
-    UserRegisterParser,
-    add_chapter_parser,
-    add_quiz_parser,
-    add_subject_parser,
-    checkTokenParser,
-    questions_add_parser,
-)
-from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
-from app.models import Chapter, Question, Quiz, Subject, User, db
 from celery import chain
 from flask import make_response, request
-from flask_jwt_extended import (
-    create_access_token,
-    get_jwt,
-    get_jwt_identity,
-    jwt_required,
-)
+from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
+                                jwt_required)
 from flask_restful import Resource
 from werkzeug.security import generate_password_hash
+
+from app.api.validators import (UserLoginParser, UserRegisterParser,
+                                add_chapter_parser, add_quiz_parser,
+                                add_subject_parser, checkTokenParser,
+                                questions_add_parser)
+from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
+from app.models import Chapter, Question, Quiz, Subject, User, db
 
 
 class CheckTokenValidResource(Resource):
@@ -566,14 +558,14 @@ class UserDashboardResource(Resource):
         """
         return all the quizzes from the time the user started
         """
-        quizzes = Quiz.query.all()
+        quizzes = Quiz.query.order_by(Quiz.date_of_quiz.asc()).all()
         quizzes_data = []
         for quiz in quizzes:
             quizzes_data.append(
                 {
                     "id": quiz.id,
                     "title": quiz.quiz_title,
-                    "date": quiz.date_of_quiz,
+                    "date_of_quiz": quiz.date_of_quiz.isoformat(),  # Convert datetime to ISO format
                     "duration": quiz.time_duration,
                     "chapter": quiz.chapter_id,
                     "subject": quiz.subject_id,

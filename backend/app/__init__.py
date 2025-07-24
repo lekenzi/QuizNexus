@@ -1,14 +1,21 @@
 from datetime import datetime
 
-from app import worker
-from app.api import api
-from app.config import Config
-from app.models import User, db
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash
+
+from app import worker
+from app.api import api
+from app.config import Config
+from app.models import User, db
+from app.worker import configure_celery
+from app.cache import redis_client
+from app.email import configure_mail
+
+
+celery = None  
 
 
 def create_super_admin():
@@ -38,43 +45,29 @@ def create_super_admin():
 
 def create_app():
     app = Flask(__name__)
-
     app.config.from_object(Config)
 
-    celery = worker.celery
-    celery.conf.update(
-        broker=app.config["CELERY_BROKER_URL"],
-        result_backend=app.config["CELERY_RESULT_BACKEND"],
-    )
-    celery = worker.celery
-    celery.conf.update(
-        broker=app.config["CELERY_BROKER_URL"],
-        result_backend=app.config["CELERY_RESULT_BACKEND"],
-        task_serializer="json",
-    )
-
-    celery.autodiscover_tasks(["tasks"])
-    celery.Task = worker.ContextTask
-
-    with app.app_context():
-        db.init_app(app)
-        db.create_all()
-        create_super_admin()
-
+    
+    db.init_app(app)
     Migrate(app, db)
     JWTManager(app)
-    CORS(
-        app,
-        origins=["http://localhost:*"],
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        supports_credentials=True,
-    )
+    CORS(app)
 
-    # Register  API resources
+    
+    global celery
+    celery = configure_celery(app)
+
+    
+    with app.app_context():
+        redis_client.ping()  
+        print("Redis connected successfully!")
+
+    
+    mail = configure_mail(app)
+
+    
     api.init_app(app)
 
-    @app.route("/")
-    def index():
-        return "Welcome to the backend!"
-
     return app
+
+

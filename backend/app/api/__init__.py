@@ -7,18 +7,11 @@ cache = Cache()
 
 # add all the resources and routes here for the API
 
-from app.api.resource import (
-    ChapterResources,
-    CheckTokenValidResource,
-    QuestionResources,
-    QuizResources,
-    SubjectResources,
-    TestPostResource,
-    UserDashboardResource,
-    UserLoginResource,
-    UserLogoutResource,
-    UserRegisterResource,
-)
+from app.api.resource import (ChapterResources, CheckTokenValidResource,
+                              QuestionResources, QuizResources,
+                              SubjectResources, TestPostResource,
+                              UserDashboardResource, UserLoginResource,
+                              UserLogoutResource, UserRegisterResource)
 
 api.add_resource(UserLoginResource, "/api/login", endpoint="login")
 api.add_resource(UserRegisterResource, "/api/register", endpoint="register")

@@ -1,7 +1,7 @@
 <template>
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">
+      <a class="navbar-brand" href="/">
         <img
           src="./../../../public/img/icon-no-bg.png"
           width="70"
@@ -22,7 +22,14 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <template v-if="isAuthenticated">
+          <template v-if="isTokenValidating">
+            <li class="nav-item">
+              <span class="nav-link">
+                <i class="fas fa-spinner fa-spin"></i> Validating...
+              </span>
+            </li>
+          </template>
+          <template v-else-if="isAuth && userRole === 'admin'">
             <li class="nav-item">
               <router-link
                 to="/home"
@@ -50,7 +57,43 @@
                 Summary
               </router-link>
             </li>
-            <!-- <li class="nav-item">
+            <li class="nav-item danger-bg">
+              <a href="" class="nav-link" @click.prevent="logout_user">
+                Logout
+              </a>
+            </li>
+          </template>
+
+          <!-- Navbar for user role -->
+          <template v-else-if="isAuth && userRole === 'user'">
+            <li class="nav-item">
+              <router-link
+                to="/dashboard"
+                class="nav-link"
+                :class="{ active: isActive('/dashboard') }"
+              >
+                Dashboard
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link
+                to="/scores"
+                class="nav-link"
+                :class="{ active: isActive('/scores') }"
+              >
+                My Quizzes
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link
+                to="/mystats"
+                class="nav-link"
+                :class="{ active: isActive('/mystats') }"
+              >
+                My Stats
+              </router-link>
+            </li>
+            <li class="nav-item">
               <router-link
                 to="/profile"
                 class="nav-link"
@@ -58,13 +101,15 @@
               >
                 Profile
               </router-link>
-            </li> -->
+            </li>
             <li class="nav-item danger-bg">
               <a href="" class="nav-link" @click.prevent="logout_user">
                 Logout
               </a>
             </li>
           </template>
+
+          <!-- Navbar for unauthenticated users -->
           <template v-else>
             <li class="nav-item">
               <router-link
@@ -101,9 +146,14 @@
 </template>
 
 <script>
-import { logout, isAuthenticated } from "@/stores/appState";
+import { ref, onMounted, watch } from "vue";
+import {
+  logout,
+  validateToken,
+  isAuthenticated,
+  getUserrole,
+} from "@/stores/appState";
 import { useRouter, useRoute } from "vue-router";
-import { computed } from "vue";
 
 export default {
   name: "IndexPageNav",
@@ -111,15 +161,52 @@ export default {
     const router = useRouter();
     const route = useRoute();
 
-    // Create a computed property that reactively tracks authentication state
-    const isAuth = computed(() => isAuthenticated());
+    const isAuth = ref(false);
+    const userRole = ref("");
+    const isTokenValidating = ref(false);
+
+    const checkAuthStatus = async () => {
+      try {
+        isTokenValidating.value = true;
+
+        const isValidToken = await validateToken();
+        if (isValidToken) {
+          isAuth.value = await isAuthenticated();
+          userRole.value = await getUserrole();
+        } else {
+          isAuth.value = false;
+          userRole.value = "";
+        }
+      } catch (error) {
+        console.error("Error validating token:", error);
+        isAuth.value = false;
+        userRole.value = "";
+      } finally {
+        isTokenValidating.value = false;
+      }
+    };
+
+    onMounted(async () => {
+      await checkAuthStatus();
+    });
+
+    watch(
+      () => route.path,
+      async () => {
+        await checkAuthStatus(); // Validate token on route change
+      }
+    );
 
     const logout_user = async () => {
       try {
         await logout();
+        isAuth.value = false;
+        userRole.value = "";
         router.push("/login");
       } catch (error) {
         console.error("Logout failed:", error);
+        isAuth.value = false;
+        userRole.value = "";
         router.push("/login");
       }
     };
@@ -127,7 +214,9 @@ export default {
     const isActive = (path) => route.path === path;
 
     return {
-      isAuthenticated: isAuth,
+      isAuth,
+      userRole,
+      isTokenValidating,
       logout_user,
       isActive,
     };
@@ -143,8 +232,5 @@ export default {
 .nav-link.active {
   font-weight: bold;
   color: #007bff !important;
-}
-body {
-  padding-top: 200px;
 }
 </style>

@@ -1,13 +1,24 @@
-import celery
 from celery import Celery
-from flask import current_app as app
+from flask import Flask
+import os
+from datetime import timedelta
 
-celery = Celery("Application worker")
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend=app.config["CELERY_RESULT_BACKEND"],
+        broker=app.config["CELERY_BROKER_URL"],
+    )
+
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery.Task = ContextTask
+    return celery
 
 
-class ContextTask(celery.Task):
-    """A task that runs in the Flask application context."""
-
-    def __call__(self, *args, **kwargs):
-        with app.app_context():
-            return self.run(*args, **kwargs)
+def configure_celery(app):
+    celery = make_celery(app)
+    return celery

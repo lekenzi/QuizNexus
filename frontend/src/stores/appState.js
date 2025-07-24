@@ -280,7 +280,15 @@ export async function initializeAuth() {
     store.dispatch("updateToken", token);
 
     const isValid = await store.dispatch("validateToken");
+
+    if (!isValid) {
+      store.dispatch("clearAll");
+      return false;
+    }
+
     return isValid;
+  } else {
+    store.dispatch("clearAll");
+    return false;
   }
-  return false;
 }

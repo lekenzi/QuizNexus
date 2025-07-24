@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="container d-flex align-items-center justify-content-center min-vh-10 mt-5"
-  >
+  <div class="container d-flex align-items-center justify-content-center">
     <div class="card shadow p-4" style="max-width: 400px; width: 100%">
       <h2 class="text-center mb-4">Login</h2>
       <form @submit.prevent="handleLogin">
@@ -77,8 +75,16 @@ export default {
           setToken(access_token); // This will also handle localStorage
           setUser(user);
           setIsAuthenticated(true);
+          // console.log("Login successful:", user);
 
-          this.$router.push({ name: "home" });
+          // Redirect based on user role
+          if (user.role === "admin") {
+            this.$router.push({ name: "home" });
+          } else if (user.role === "user") {
+            this.$router.push({ name: "user_dashboard" });
+          } else {
+            throw new Error("Unknown user role");
+          }
         } else {
           throw new Error("Invalid response format - missing token or user");
         }

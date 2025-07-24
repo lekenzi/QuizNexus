@@ -9,6 +9,7 @@ import QuizSubDisplay from "@/components/fragments/QuizSubDisplay.vue";
 import { validateToken, getUserrole } from "@/stores/appState";
 import UserDashBoardView from "@/components/users/UserDashBoardView.vue";
 import UnauthorisedComponent from "@/components/unauthorised/UnauthorisedComponent.vue";
+import ScoresView from "@/components/users/ScoresView.vue";
 
 const routes = [
   {
@@ -32,10 +33,7 @@ const routes = [
     component: HomeViewComponent,
     meta: {
       requiresAuth: true,
-      roleComponents: {
-        admin: HomeViewComponent,
-        user: UserDashBoardView,
-      },
+      requiresRole: "admin",
     },
   },
   {
@@ -44,7 +42,7 @@ const routes = [
     component: QuizesViewComponent,
     meta: {
       requiresAuth: true,
-      roleComponents: { admin: QuizesViewComponent },
+      requiresRole: "admin",
     },
     redirect: { name: "all_quizzes" },
     children: [
@@ -55,11 +53,6 @@ const routes = [
         props: () => ({
           subject_id: null,
         }),
-        meta: {
-          roleComponents: {
-            admin: QuizSubDisplay,
-          },
-        },
       },
       {
         path: "subject/:subject_id",
@@ -68,11 +61,6 @@ const routes = [
         props: (route) => ({
           subject_id: parseInt(route.params.subject_id),
         }),
-        meta: {
-          roleComponents: {
-            admin: QuizSubDisplay,
-          },
-        },
       },
     ],
   },
@@ -82,7 +70,7 @@ const routes = [
     component: SummaryViewComponent,
     meta: {
       requiresAuth: true,
-      roleComponents: { admin: SummaryViewComponent },
+      requiresRole: "admin",
     },
   },
   {
@@ -93,7 +81,26 @@ const routes = [
   {
     path: "/:pathMatch(.*)*",
     name: "notfound",
-    redirect: { name: "index" },
+    redirect: { name: "unauth" },
+  },
+  // all the routes below are for for the users
+  {
+    path: "/dashboard",
+    name: "user_dashboard",
+    component: UserDashBoardView,
+    meta: {
+      requiresAuth: true,
+      requiresRole: "user",
+    },
+  },
+  {
+    path: "/scores",
+    name: "user_scores",
+    component: ScoresView,
+    meta: {
+      requiresAuth: true,
+      requiresRole: "user",
+    },
   },
 ];
 
@@ -103,59 +110,40 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-  if (to.meta.requiresAuth) {
-    const token = localStorage.getItem("token");
+  try {
+    if (to.meta.requiresAuth) {
+      const token = localStorage.getItem("token");
 
-    if (!token) {
-      next({ name: "login" });
-      return;
-    }
+      if (!token) {
+        return next({ name: "login" });
+      }
 
-    try {
       const isValid = await validateToken();
 
       if (!isValid) {
-        next({ name: "login" });
-        return;
+        return next({ name: "login" });
       }
 
-      if (to.meta.requiredRole) {
-        const userRole = await getUserrole();
-        console.log("User role:", userRole);
-
-        if (userRole !== to.meta.requiredRole) {
-          next({ name: "unauthorized" });
-          return;
-        }
+      // Check for role-based access
+      const userRole = await getUserrole();
+      console.log("User role:", userRole);
+      if (to.meta.requiresRole && to.meta.requiresRole !== userRole) {
+        return next({ name: "unauthorized" });
       }
-
-      if (to.meta.roleComponents) {
-        const userRole = await getUserrole();
-
-        if (!to.meta.roleComponents[userRole]) {
-          next({ name: "unauthorized" });
-          return;
-        }
-      }
-
-      next();
-    } catch (error) {
-      console.error("Token validation failed:", error);
-      next({ name: "login" });
-    }
-  } else if (
-    (to.name === "login" || to.name === "register" || to.name === "index") &&
-    localStorage.getItem("token")
-  ) {
-    try {
+    } else if (
+      (to.name === "login" || to.name === "register" || to.name === "index") &&
+      localStorage.getItem("token")
+    ) {
       const isValid = await validateToken();
 
       if (isValid) {
-        next({ name: "home" });
-        return;
+        return next({ name: "home" });
       }
-    } catch (error) {
-      console.error("Token validation failed:", error);
+    }
+  } catch (error) {
+    console.error("Token validation failed:", error);
+    if (to.meta.requiresAuth) {
+      return next({ name: "login" });
     }
   }
 

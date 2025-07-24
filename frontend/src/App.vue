@@ -1,15 +1,18 @@
 <template>
-  <IndexPageNav />
-  <div style="">
-    <router-view
-      style="
-        position: fixed;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-      "
-    />
+  <div class="d-flex flex-column">
+    <IndexPageNav />
+    <div class="d-flex flex-column justify-content-center align-items-center">
+      <router-view
+        style="
+          /* position: fixed; */
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start;
+          align-items: center;
+          /* height: 100vh; */
+        "
+      />
+    </div>
   </div>
 </template>
 <script>
