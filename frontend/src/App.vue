@@ -4,12 +4,10 @@
     <div class="d-flex flex-column justify-content-center align-items-center">
       <router-view
         style="
-          /* position: fixed; */
           display: flex;
           flex-direction: column;
           justify-content: flex-start;
           align-items: center;
-          /* height: 100vh; */
         "
       />
     </div>

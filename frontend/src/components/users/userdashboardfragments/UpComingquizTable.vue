@@ -20,7 +20,7 @@
               class="btn btn-success btn-sm"
               @click="handleAction(quiz.id)"
             >
-              Take Action
+              Take Quiz
             </button>
           </td>
         </tr>
@@ -45,7 +45,7 @@ export default {
     },
     handleAction(quizId) {
       console.log(`Action triggered for quiz ID: ${quizId}`);
-      // Add your action logic here
+      this.$router.push({ name: "quiz_page", params: { quiz_id: quizId } });
     },
   },
 };
@@ -55,5 +55,6 @@ export default {
 .upcoming-quiz-container {
   display: flex;
   flex-direction: column;
+  margin: 0 auto;
 }
 </style>

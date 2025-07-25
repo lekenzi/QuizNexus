@@ -81,7 +81,7 @@
                 class="nav-link"
                 :class="{ active: isActive('/scores') }"
               >
-                My Quizzes
+                My Scores
               </router-link>
             </li>
             <li class="nav-item">

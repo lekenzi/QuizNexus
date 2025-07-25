@@ -116,3 +116,16 @@ class QuizResponse(db.Model):
 
     def __repr__(self):
         return "<QuizResponse {}>".format(self.id)
+
+
+class QuizAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"))
+    score = db.Column(db.Integer)
+    total_questions = db.Column(db.Integer)
+    correct_answers = db.Column(db.Integer)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    def __repr__(self):
+        return "<QuizAttempt {}>".format(self.id)

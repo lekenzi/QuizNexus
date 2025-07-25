@@ -66,18 +66,13 @@ export default {
           password: this.password,
         });
 
-        // Extract the token and user from response
         const { access_token, user } = response.data;
 
-        // Check if we have both token and user
         if (access_token && user) {
-          // Update store using proper helper functions
-          setToken(access_token); // This will also handle localStorage
+          setToken(access_token);
           setUser(user);
           setIsAuthenticated(true);
-          // console.log("Login successful:", user);
 
-          // Redirect based on user role
           if (user.role === "admin") {
             this.$router.push({ name: "home" });
           } else if (user.role === "user") {
@@ -91,12 +86,10 @@ export default {
       } catch (error) {
         console.error("Login failed:", error);
 
-        // Clear any partial state
         setToken("");
         setUser({ id: null, username: "", role: "" });
         setIsAuthenticated(false);
 
-        // Show error to user
         this.error =
           error.response?.data?.message ||
           "Login failed. Please check your credentials.";

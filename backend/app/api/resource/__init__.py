@@ -13,7 +13,7 @@ from app.api.validators import (
     questions_add_parser,
 )
 from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
-from app.models import Chapter, Question, Quiz, Subject, User, db
+from app.models import Chapter, Question, Quiz, Score, Subject, User, db
 from celery import chain
 from flask import make_response, request
 from flask_jwt_extended import (
@@ -580,3 +580,77 @@ class UserDashboardResource(Resource):
                 }
             )
         return {"data": quizzes_data}, 200
+
+
+class ScoresResource(Resource):
+    @jwt_auth_required
+    @role_required(["user"])
+    def get(self):
+        """
+        return all the scores of the user
+        """
+        user_id = get_jwt_identity()
+        scores = Score.query.filter_by(user_id=user_id).all()
+        scores_data = []
+        for score in scores:
+            quiz = Quiz.query.get(score.quiz_id)
+            subject = Subject.query.get(quiz.subject_id) if quiz else None
+            chapter = Chapter.query.get(quiz.chapter_id) if quiz else None
+
+            scores_data.append(
+                {
+                    "id": score.id,
+                    "quiz_id": score.quiz_id,
+                    "quiz_title": quiz.quiz_title if quiz else None,
+                    "subject_name": subject.name if subject else None,
+                    "chapter_name": chapter.name if chapter else None,
+                    "score": score.score,
+                    "timestamp": score.timestamp.isoformat(), 
+                }
+            )
+        return {"data": scores_data}, 200
+    
+    
+class TakeQuizResource(Resource):
+    def get(self):
+        """return the quiz_id, number of questions, and time duration for the quiz, question_id, question, options, answer, marks
+        Expects a query parameter `quiz_id`.
+        Keyword arguments:
+        argument -- description
+        Return: return_description
+        """
+
+        quiz_id = request.args.get("quiz_id")
+        if not quiz_id:
+            return {"message": "quiz_id is required"}, 400
+
+        quiz = Quiz.query.get(quiz_id)
+        if not quiz:
+            return {"message": "Quiz not found"}, 404
+
+        questions = Question.query.filter_by(quiz_id=quiz_id).all()
+        questions_data = []
+        for question in questions:
+            questions_data.append(
+                {
+                    "id": question.id,
+                    "question": question.question,
+                    "options": [
+                        question.option1,
+                        question.option2,
+                        question.option3,
+                        question.option4,
+                    ],
+                    "answer": question.answer,
+                    "marks": question.marks,
+                }
+            )
+
+        return {
+            "data": {
+                "quiz_id": quiz.id,
+                "number_of_questions": len(questions),
+                "time_duration": quiz.time_duration,
+                "questions": questions_data,
+            }
+        }, 200

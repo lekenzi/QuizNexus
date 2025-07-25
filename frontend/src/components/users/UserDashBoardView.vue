@@ -1,7 +1,12 @@
 <template>
-  <div>
-    <h5>user dashboard</h5>
-    <UpComingQuizTable :quizzes="allQuizzes" />
+  <div class="scores-view container mt-5 p-4 bg-light rounded shadow">
+    <h1 class="title text-center text-primary mb-3">User Dashboard</h1>
+    <p class="description text-center text-secondary mb-4">
+      Welcome to your dashboard! Here are your upcoming quizzes:
+    </p>
+    <div class="card-body">
+      <UpComingQuizTable :quizzes="allQuizzes" />
+    </div>
   </div>
 </template>
 

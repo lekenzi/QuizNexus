@@ -18,6 +18,7 @@ from app.api.resource import (
     UserLoginResource,
     UserLogoutResource,
     UserRegisterResource,
+    ScoresResource,
 )
 
 api.add_resource(UserLoginResource, "/api/login", endpoint="login")
@@ -34,3 +35,4 @@ api.add_resource(QuestionResources, "/api/questions", endpoint="questions")
 
 
 api.add_resource(UserDashboardResource, "/api/dashboard", endpoint="dashboard")
+api.add_resource(ScoresResource, "/api/scores", endpoint="scores")

@@ -10,6 +10,8 @@ import { validateToken, getUserrole } from "@/stores/appState";
 import UserDashBoardView from "@/components/users/UserDashBoardView.vue";
 import UnauthorisedComponent from "@/components/unauthorised/UnauthorisedComponent.vue";
 import ScoresView from "@/components/users/ScoresView.vue";
+import QuizPage from "@/components/users/QuizPage.vue";
+import DisplayQuestion from "@/components/users/userdashboardfragments/DisplayQuestion.vue";
 
 const routes = [
   {
@@ -101,6 +103,29 @@ const routes = [
       requiresAuth: true,
       requiresRole: "user",
     },
+  },
+  // this route breaks out of the main flow of the app as it is used to display the quizs
+  {
+    path: "/quizzes/:quiz_id",
+    name: "quiz_page",
+    component: QuizPage,
+    props: (route) => ({
+      quiz_id: parseInt(route.params.quiz_id),
+    }),
+    children: [
+      {
+        path: "question/:questionIndex",
+        name: "quiz_question",
+        component: DisplayQuestion,
+        props: (route) => {
+          const quiz = route.params.quiz;
+          const questionIndex = parseInt(route.params.questionIndex);
+          return {
+            question: quiz?.questions?.[questionIndex] || null,
+          };
+        },
+      },
+    ],
   },
 ];
 

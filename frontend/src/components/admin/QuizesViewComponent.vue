@@ -1,5 +1,5 @@
 <template>
-  <div class="quizzes-view-container">
+  <div class="quizzes-view-container d-flex flex-row w-100">
     <div class="sidebar-container">
       <QuizzesSideNavBar
         :quizzes="quizzes"
