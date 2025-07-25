@@ -605,12 +605,12 @@ class ScoresResource(Resource):
                     "subject_name": subject.name if subject else None,
                     "chapter_name": chapter.name if chapter else None,
                     "score": score.score,
-                    "timestamp": score.timestamp.isoformat(), 
+                    "timestamp": score.timestamp.isoformat(),
                 }
             )
         return {"data": scores_data}, 200
-    
-    
+
+
 class TakeQuizResource(Resource):
     def get(self):
         """return the quiz_id, number of questions, and time duration for the quiz, question_id, question, options, answer, marks

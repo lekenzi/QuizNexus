@@ -12,13 +12,13 @@ from app.api.resource import (
     CheckTokenValidResource,
     QuestionResources,
     QuizResources,
+    ScoresResource,
     SubjectResources,
     TestPostResource,
     UserDashboardResource,
     UserLoginResource,
     UserLogoutResource,
     UserRegisterResource,
-    ScoresResource,
 )
 
 api.add_resource(UserLoginResource, "/api/login", endpoint="login")
