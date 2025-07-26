@@ -11,7 +11,7 @@ import UserDashBoardView from "@/components/users/UserDashBoardView.vue";
 import UnauthorisedComponent from "@/components/unauthorised/UnauthorisedComponent.vue";
 import ScoresView from "@/components/users/ScoresView.vue";
 import QuizPage from "@/components/users/QuizPage.vue";
-import DisplayQuestion from "@/components/users/userdashboardfragments/DisplayQuestion.vue";
+// Removed unused import
 
 const routes = [
   {
@@ -112,20 +112,10 @@ const routes = [
     props: (route) => ({
       quiz_id: parseInt(route.params.quiz_id),
     }),
-    children: [
-      {
-        path: "question/:questionIndex",
-        name: "quiz_question",
-        component: DisplayQuestion,
-        props: (route) => {
-          const quiz = route.params.quiz;
-          const questionIndex = parseInt(route.params.questionIndex);
-          return {
-            question: quiz?.questions?.[questionIndex] || null,
-          };
-        },
-      },
-    ],
+    meta: {
+      requiresAuth: true,
+      requiresRole: "user",
+    },
   },
 ];
 
@@ -134,7 +124,8 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
+  // Renamed 'from' to '_from' to indicate it's unused
   try {
     if (to.meta.requiresAuth) {
       const token = localStorage.getItem("token");

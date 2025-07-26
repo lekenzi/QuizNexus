@@ -641,7 +641,6 @@ class TakeQuizResource(Resource):
                         question.option3,
                         question.option4,
                     ],
-                    "answer": question.answer,
                     "marks": question.marks,
                 }
             )

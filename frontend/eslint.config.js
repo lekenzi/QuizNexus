@@ -19,6 +19,19 @@ export default [
       globals: {
         ...globals.browser,
       },
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+    },
+    rules: {
+      "vue/multi-word-component-names": "off",
+      "no-unused-vars": "warn",
+      "vue/no-unused-components": "warn",
+    },
+    linterOptions: {
+      noInlineConfig: true,
+      reportUnusedDisableDirectives: true,
     },
   },
 

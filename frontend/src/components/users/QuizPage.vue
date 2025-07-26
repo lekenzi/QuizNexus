@@ -1,12 +1,11 @@
 <template>
-  <div class="d-flex flex-row flex-shrink-0 w-100">
+  <div class="quiz-component height-100 d-flex flex-row w-100">
     <QuizSubmittionSubNav
       :quiz_id="quiz_id"
-      :quiz="quiz"
       @select-question="handleQuestionSelect"
     />
-    <div class="content flex-grow-1 p-3">
-      <DisplayQuestion v-if="selectedQuestion" :question="selectedQuestion" />
+    <div class="content flex-grow-1 p-3 overflow-auto">
+      <DisplayQuestion :questions="questions" />
     </div>
   </div>
 </template>
@@ -14,7 +13,7 @@
 <script>
 import QuizSubmittionSubNav from "./userdashboardfragments/QuizSubmittionSubNav.vue";
 import DisplayQuestion from "./userdashboardfragments/DisplayQuestion.vue";
-import { ref } from "vue";
+import { make_getrequest } from "@/stores/appState";
 
 export default {
   name: "QuizPage",
@@ -26,44 +25,40 @@ export default {
   },
   data() {
     return {
-      quiz: {
-        quiz_id: 1,
-        number_of_questions: 5,
-        time_duration: 30,
-        questions: [
-          {
-            id: 1,
-            question: "What is the capital of France?",
-            options: ["Paris", "London", "Berlin", "Madrid"],
-            answer: "Paris",
-            marks: 5,
-          },
-          {
-            id: 2,
-            question: "What is 2 + 2?",
-            options: ["3", "4", "5", "6"],
-            answer: "4",
-            marks: 2,
-          },
-        ],
-      },
-      selectedQuestion: null,
+      questions: [],
     };
+  },
+  methods: {
+    async fetchquestionsForQuiz() {
+      const response = await make_getrequest("/fetchQuestions", {
+        quiz_id: this.quiz_id,
+      });
+      console.log("fetch questions response", response.data);
+      this.questions = response.data;
+    },
+    handleQuestionSelect(selectedQuestion) {
+      console.log("Selected question:", selectedQuestion);
+    },
   },
   components: {
     QuizSubmittionSubNav,
     DisplayQuestion,
   },
-  setup() {
-    const selectedQuestion = ref(null);
-
-    const handleQuestionSelect = (question) => {
-      selectedQuestion.value = question;
-    };
-
-    return {
-      handleQuestionSelect,
-    };
+  mounted() {
+    this.fetchquestionsForQuiz();
   },
 };
 </script>
+
+<style scoped>
+.quiz-component {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+.content {
+  overflow-y: auto;
+}
+</style>

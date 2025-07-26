@@ -1,51 +1,31 @@
 <template>
-  <div>
-    <div class="d-flex flex-row" style="height: 100vh">
-      <div
-        class="d-flex flex-column align-items-stretch flex-shrink-0 bg-white"
-        style="width: 380px; height: 100%; overflow-y: auto"
+  <div class="d-flex flex-row" style="height: 100vh; overflow: hidden">
+    <div
+      class="d-flex flex-column bg-white p-3 overflow-auto"
+      style="width: 380px; flex-shrink: 0"
+    >
+      <p class="mb-3"><strong>Quiz ID:</strong> {{ quiz_id }}</p>
+      <button
+        type="button"
+        class="btn btn-success mb-3"
+        @click="triggerSocketToStartQuiz"
       >
-        <p>{{ quiz_id }}</p>
-        <div
-          v-if="quiz.questions && quiz.questions.length > 0"
-          class="list-group list-group-flush border-bottom scrollarea"
-        >
-          <div
-            v-for="(question, index) in quiz.questions"
-            :key="index"
-            class="list-group-item list-group-item-action py-3 lh-tight"
-            @click="navigateToQuestion(index)"
-          >
-            <div
-              class="d-flex w-100 align-items-center justify-content-between"
-            >
-              <strong class="mb-1">Question {{ index + 1 }}</strong>
-              <small>Marks: {{ question.marks }}</small>
-            </div>
-            <div class="col-10 mb-1 small">
-              {{ question.question }}
-            </div>
-            <ul>
-              <li
-                v-for="(option, optIndex) in question.options"
-                :key="optIndex"
-              >
-                {{ option }}
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div v-else>
-          <p>No questions available for this quiz.</p>
-        </div>
-      </div>
+        <strong>START QUIZ</strong>
+      </button>
+      <QuestionGridBlock :quiz_id="quiz_id" class="mb-3" />
+      <button class="btn btn-danger" @click="triggerSocketToEndQuiz">
+        End Quiz
+      </button>
+    </div>
+    <div class="flex-grow-1 bg-light p-3">
+      <slot></slot>
     </div>
   </div>
 </template>
 
 <script>
 import { useRouter } from "vue-router";
-
+import QuestionGridBlock from "./QuestionGridBlock.vue";
 export default {
   name: "QuizSubmissionSubNav",
   props: {
@@ -53,10 +33,9 @@ export default {
       type: Number,
       required: true,
     },
-    quiz: {
-      type: Object,
-      required: true, // Ensure the quiz object is passed as a prop
-    },
+  },
+  components: {
+    QuestionGridBlock,
   },
   setup(props) {
     const router = useRouter();
@@ -81,5 +60,27 @@ export default {
       navigateToQuestion,
     };
   },
+  methods: {
+    triggerSocketToStartQuiz() {
+      console.log("Starting quiz with ID:", this.quiz_id);
+      this.$emit("start-quiz", this.quiz_id);
+    },
+    triggerSocketToEndQuiz() {
+      console.log("Ending quiz with ID:", this.quiz_id);
+      this.$emit("end-quiz", this.quiz_id);
+    },
+  },
+  beforeUnmount() {
+    this.triggerSocketToEndQuiz();
+    console.log(
+      "QuizSubmissionSubNav component is being unmounted, ending quiz."
+    );
+  },
 };
 </script>
+
+<style scoped>
+.d-flex {
+  overflow-y: auto;
+}
+</style>
