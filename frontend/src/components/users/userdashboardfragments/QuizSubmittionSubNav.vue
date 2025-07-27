@@ -4,24 +4,102 @@
       class="d-flex flex-column bg-white p-3 overflow-auto"
       style="width: 380px; flex-shrink: 0"
     >
-      <p class="mb-3"><strong>Quiz ID:</strong> {{ quiz_id }}</p>
-      <div v-if="quizEndedMessage">
-        <strong class="text-success">{{ quizEndedMessage }}</strong>
+      <!-- Quiz Details Card -->
+      <div class="card mb-3 border-0 bg-light">
+        <div class="card-body">
+          <h5 class="card-title text-primary">
+            <i class="fas fa-clipboard-list me-2"></i>Quiz Details
+          </h5>
+          <div class="quiz-info">
+            <p class="mb-2"><strong>Quiz ID:</strong> {{ quiz_id }}</p>
+            <p class="mb-2"><strong>Title:</strong> {{ quizTitle }}</p>
+            <p class="mb-2">
+              <strong>Duration:</strong> {{ quizDuration }} minutes
+            </p>
+            <p class="mb-2">
+              <strong>Questions:</strong> {{ questions.length }}
+            </p>
+            <p class="mb-2"><strong>Subject:</strong> {{ subjectName }}</p>
+            <p class="mb-2"><strong>Chapter:</strong> {{ chapterName }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="quizEndedMessage" class="alert alert-success">
+        <i class="fas fa-check-circle me-2"></i>{{ quizEndedMessage }}
       </div>
       <div v-else>
-        <div
-          v-if="countdown.minutes >= 0 && countdown.seconds >= 0"
-          class="mb-3"
-        >
-          <strong>
-            Quiz starts in: {{ countdown.minutes }}:{{
-              countdown.seconds.toString().padStart(2, "0")
-            }}
-          </strong>
+        <!-- Timer Section -->
+        <div class="card mb-3 border-0">
+          <div class="card-body">
+            <!-- Quiz hasn't started yet -->
+            <div v-if="!quizStarted" class="text-center">
+              <div class="countdown-circle">
+                {{ countdown.minutes }}:{{
+                  countdown.seconds.toString().padStart(2, "0")
+                }}
+              </div>
+              <p class="text-info mt-2">Quiz starts in</p>
+            </div>
+            <!-- Quiz is running -->
+            <div v-else class="text-center">
+              <div class="countdown-circle running">
+                {{ countdown.minutes }}:{{
+                  countdown.seconds.toString().padStart(2, "0")
+                }}
+              </div>
+              <p class="text-warning mt-2">Time remaining</p>
+            </div>
+          </div>
         </div>
-        <QuestionGridBlock :quiz_id="quiz_id" class="mb-3" />
-        <button class="btn btn-danger" @click="triggerSocketToEndQuiz">
-          End Quiz
+
+        <!-- Progress Section -->
+        <div class="card mb-3 border-0" v-if="quizStarted">
+          <div class="card-body">
+            <h6 class="card-subtitle mb-2 text-muted">Your Progress</h6>
+            <div class="progress mb-2">
+              <div
+                class="progress-bar bg-success"
+                role="progressbar"
+                :style="{ width: progressPercentage + '%' }"
+                :aria-valuenow="progressPercentage"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                {{ progressPercentage }}%
+              </div>
+            </div>
+            <small
+              >{{ answeredCount }} of {{ questions.length }} questions
+              answered</small
+            >
+          </div>
+        </div>
+
+        <!-- Question grid - only show when quiz has started -->
+        <div v-if="quizStarted" class="card mb-3 border-0">
+          <div class="card-body">
+            <h6 class="card-subtitle mb-2 text-muted">Questions</h6>
+            <div class="question-grid">
+              <div
+                v-for="(question, idx) in questions"
+                :key="question.id"
+                class="question-block"
+                :class="{ answered: answeredQuestions[question.id] }"
+              >
+                {{ idx + 1 }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- End quiz button - only show when quiz is active -->
+        <button
+          class="btn btn-danger w-100"
+          @click="endQuiz"
+          v-if="quizStarted && !quizEndedMessage"
+        >
+          <i class="fas fa-stop-circle me-2"></i>Submit Quiz
         </button>
       </div>
     </div>
@@ -32,119 +110,37 @@
 </template>
 
 <script>
-import { useRouter } from "vue-router";
-import QuestionGridBlock from "./QuestionGridBlock.vue";
-import { io } from "socket.io-client";
-
 export default {
   name: "QuizSubmissionSubNav",
   props: {
-    quiz_id: {
-      type: Number,
+    quiz_id: { type: Number, required: true },
+    questions: { type: Array, required: true, default: () => [] },
+    answeredQuestions: { type: Object, required: true, default: () => ({}) },
+    countdown: {
+      type: Object,
       required: true,
+      default: () => ({ minutes: 0, seconds: 0 }),
     },
-    quiz_start_time: {
-      type: String, // Expecting ISO 8601 format (e.g., "2023-10-01T10:00:00Z")
-      required: true,
+    quizStarted: { type: Boolean, required: true },
+    quizEndedMessage: { type: String, required: false },
+    quizTitle: { type: String, default: "Quiz" },
+    quizDuration: { type: Number, default: 0 },
+    subjectName: { type: String, default: "General" },
+    chapterName: { type: String, default: "Not specified" },
+  },
+  computed: {
+    answeredCount() {
+      return Object.keys(this.answeredQuestions).length;
     },
-  },
-  components: {
-    QuestionGridBlock,
-  },
-  setup(props) {
-    const router = useRouter();
-
-    const navigateToQuestion = (index) => {
-      const question = props.quiz?.questions?.[index];
-      if (!question) {
-        console.error("Question not found at index:", index);
-        return;
-      }
-      router.push({
-        name: "quiz_question",
-        params: {
-          quiz_id: props.quiz_id,
-          questionIndex: index,
-          quiz: props.quiz, // Pass the quiz object as a route parameter
-        },
-      });
-    };
-
-    return {
-      navigateToQuestion,
-    };
-  },
-  data() {
-    return {
-      socket: null,
-      countdown: { minutes: -1, seconds: -1 }, // Countdown timer state
-      quizEndedMessage: "", // State to store the quiz ended message
-      countdownInterval: null, // Interval for updating the countdown
-    };
-  },
-  created() {
-    const token = localStorage.getItem("token"); // Retrieve JWT token from local storage
-    if (!token) {
-      console.error("JWT token not found in local storage.");
-      return;
-    }
-
-    this.socket = io("http://localhost:5000", {
-      auth: {
-        token: token, // Send the JWT token as part of the socket authentication
-      },
-    });
-
-    this.socket.on("connect", () => {
-      console.log("Socket connected:", this.socket.id);
-
-      // Automatically join the quiz room
-      this.socket.emit("join_quiz", { quiz_id: this.quiz_id });
-    });
-
-    // Listen for quiz ended event
-    this.socket.on("quiz_ended", (data) => {
-      this.quizEndedMessage = "You have completed your test"; // Set the message
-      console.log(`Quiz ${data.quiz_id} has ended`);
-    });
-
-    // Start the countdown timer
-    this.startCountdown();
+    progressPercentage() {
+      if (!this.questions.length) return 0;
+      return Math.round((this.answeredCount / this.questions.length) * 100);
+    },
   },
   methods: {
-    startCountdown() {
-      const quizStartTime = new Date(this.quiz_start_time).getTime();
-      this.countdownInterval = setInterval(() => {
-        const now = new Date().getTime();
-        const timeDifference = quizStartTime - now;
-
-        if (timeDifference <= 0) {
-          clearInterval(this.countdownInterval);
-          this.countdown = { minutes: 0, seconds: 0 };
-          console.log("Quiz has started!");
-        } else {
-          const minutes = Math.floor(timeDifference / (1000 * 60));
-          const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
-          this.countdown = { minutes, seconds };
-        }
-      }, 1000);
+    endQuiz() {
+      this.$emit("end-quiz", "Quiz submitted by user.");
     },
-    triggerSocketToEndQuiz() {
-      if (this.socket) {
-        this.socket.emit("endquiz");
-      } else {
-        console.error("Socket is not initialized.");
-      }
-    },
-  },
-  beforeUnmount() {
-    if (this.socket) {
-      this.socket.disconnect();
-    }
-    if (this.countdownInterval) {
-      clearInterval(this.countdownInterval);
-    }
-    this.triggerSocketToEndQuiz();
   },
 };
 </script>
@@ -152,5 +148,56 @@ export default {
 <style scoped>
 .d-flex {
   overflow-y: auto;
+}
+
+.quiz-info p {
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.countdown-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #f8f9fa;
+  border: 4px solid #17a2b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #17a2b8;
+  margin: 0 auto;
+}
+
+.countdown-circle.running {
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.question-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.question-block {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border: 2px solid #ccc;
+  cursor: pointer;
+  font-size: 0.8em;
+}
+
+.question-block.answered {
+  background: #28a745;
+  color: #fff;
+  border-color: #28a745;
 }
 </style>

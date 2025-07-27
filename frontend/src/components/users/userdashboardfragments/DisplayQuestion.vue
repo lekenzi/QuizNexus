@@ -76,23 +76,15 @@ export default {
   },
   methods: {
     async handleOptionSelect(question_id, user_id, selectedOption) {
-      console.log("Question ID:", question_id);
-      console.log("User ID:", this.user_id);
-      console.log("Selected Option:", selectedOption);
-
       try {
-        // Ensure the payload matches the server's expected format
         const payload = {
           quiz_id: this.questions.quiz_id,
           question_id: question_id,
           user_id: this.user_id,
           selected_option: selectedOption,
         };
-
-        console.log("Payload being sent:", payload);
-
-        const response = await make_postrequest("/takeResponse", payload);
-        console.log("Response recorded successfully:", response);
+        await make_postrequest("/takeResponse", payload);
+        this.$emit("answered", question_id);
       } catch (error) {
         console.error(
           "Error recording response:",

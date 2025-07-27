@@ -2,11 +2,9 @@ import email
 import logging
 import select
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from operator import ge
 
-import jwt
-from celery import chain
 from flask import make_response, request
 from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
                                 jwt_required)
@@ -431,9 +429,7 @@ class QuizResources(Resource):
         logging.info(f"Received args for quiz creation: {args}")
         quiz_title = args["title"]
         time_duration = args["timeduration"]
-        time_of_day = datetime.strptime(
-            f"{args.get('time_of_day', '0')}:00", "%H:%M"
-        ).time()
+        time_of_day = datetime.strptime(args.get("time_of_day"), "%H:%M").time()
         chapter_id = args["chapter_id"]
         subject_id = args["subject_id"]
         date = args["date"]
@@ -599,16 +595,20 @@ class UserDashboardResource(Resource):
         upcoming_quizzes = []
         past_quizzes = []
 
-        for quiz in quizzes:
+        current_datetime = datetime.now()
+
+        for quiz in quizzes: #possible bug here if time_of_day is None
+            quiz_datetime = datetime.combine(quiz.date_of_quiz, quiz.time_of_day) if quiz.time_of_day else datetime.combine(quiz.date_of_quiz, datetime.min.time())
             quiz_data = {
-                "id": quiz.id,
-                "title": quiz.quiz_title,
-                "date_of_quiz": quiz.date_of_quiz.isoformat(),
-                "duration": quiz.time_duration,
-                "chapter": quiz.chapter_id,
-                "subject": quiz.subject_id,
+            "id": quiz.id,
+            "title": quiz.quiz_title,
+            "date_of_quiz": quiz.date_of_quiz.isoformat(),
+            "duration": quiz.time_duration,
+            "chapter": quiz.chapter_id,
+            "subject": quiz.subject_id,
+            "time_of_day": quiz.time_of_day.isoformat() if quiz.time_of_day else None,
             }
-            if quiz.date_of_quiz >= current_date:
+            if quiz_datetime >= current_datetime:
                 upcoming_quizzes.append(quiz_data)
             else:
                 past_quizzes.append(quiz_data)
@@ -650,7 +650,7 @@ class ScoresResource(Resource):
 
 class TakeQuizResource(Resource):
     def get(self):
-        """return the quiz_id, number of questions, and time duration for the quiz, question_id, question, options, answer, marks
+        """return the quiz_id, number of questions, time duration, and time of day for the quiz, question_id, question, options, marks
         Expects a query parameter `quiz_id`.
         Keyword arguments:
         argument -- description
@@ -687,6 +687,7 @@ class TakeQuizResource(Resource):
                 "quiz_id": quiz.id,
                 "number_of_questions": len(questions),
                 "time_duration": quiz.time_duration,
+                "time_of_day": quiz.time_of_day.isoformat() if quiz.time_of_day else None,
                 "questions": questions_data,
             }
         }, 200

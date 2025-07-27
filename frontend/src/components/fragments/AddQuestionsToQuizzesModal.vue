@@ -150,7 +150,6 @@ export default {
           subject_id: this.subject_id,
         };
         const response = await make_postrequest("/questions", payload);
-        console.log("Response from server:", response);
         if (response.message === "Question added successfully") {
           alert(response.message);
           this.showModal = false;

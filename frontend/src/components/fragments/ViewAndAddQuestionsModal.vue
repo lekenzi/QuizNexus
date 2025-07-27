@@ -306,7 +306,6 @@ export default {
         const response = await make_getrequest(`/questions`, {
           quiz_id: this.quiz.quiz_id,
         });
-        console.log("Fetched questions:", response);
         this.questions = Array.isArray(response.data.questions)
           ? response.data.questions
           : [];
@@ -325,17 +324,12 @@ export default {
     },
 
     handleQuestionAdded(newQuestion) {
-      // Add the new question to the list
       this.questions.push(newQuestion);
       this.showAddQuestionForm = false;
       this.lastUpdated = new Date();
-
-      // Optionally refresh the entire list
-      // this.refreshQuestions();
     },
 
     editQuestion(question) {
-      // Emit event to parent or handle edit logic
       this.$emit("edit-question", question);
     },
 
@@ -348,9 +342,7 @@ export default {
         const response = await make_deleterequest(`/questions`, {
           question_id: questionId,
         });
-        console.log("Delete response:", response);
-
-        // Remove the deleted question from the list
+        response;
         this.questions = this.questions.filter((q) => q.id !== questionId);
         this.lastUpdated = new Date();
         alert("Question deleted successfully.");
@@ -364,7 +356,6 @@ export default {
     },
 
     getSubjectName() {
-      // You might want to fetch subject name based on subject_id
       return this.quiz.subject_name || `Subject ID: ${this.quiz.subject_id}`;
     },
 
@@ -381,10 +372,7 @@ export default {
 
   mounted() {},
 
-  // Cleanup when component is destroyed
-  beforeUnmount() {
-    // Remove any event listeners or cleanup
-  },
+  beforeUnmount() {},
 };
 </script>
 
