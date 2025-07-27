@@ -561,6 +561,24 @@ class QuestionResources(Resource):
             "message": "Question added successfully",
             "question_id": new_question.id,
         }, 201
+        
+    @jwt_auth_required
+    @role_required(["admin"])
+    def delete(self):
+        args = request.get_json()
+        question_id = args.get("question_id")
+
+        if not question_id:
+            return {"message": "Question ID is required"}, 400
+
+        question = Question.query.get(question_id)
+        if not question:
+            return {"message": "Question not found"}, 404
+
+        db.session.delete(question)
+        db.session.commit()
+
+        return {"message": "Question deleted successfully"}, 200
 
 
 class UserDashboardResource(Resource):

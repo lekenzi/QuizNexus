@@ -9,6 +9,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.0.0",
     "axios": "^1.10.0",
     "bootstrap": "^5.3.7",
     "chart.js": "^4.5.0",

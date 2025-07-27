@@ -161,65 +161,58 @@
                         <span class="badge bg-secondary me-2"
                           >Q{{ index + 1 }}</span
                         >
-                        {{ question.question_text }}
+                        {{ question.question || "Untitled Question" }}
                       </h6>
                       <small class="text-muted">
-                        Type: {{ question.question_type || "Multiple Choice" }}
-                        <span v-if="question.difficulty" class="ms-2">
-                          • Difficulty: {{ question.difficulty }}
-                        </span>
+                        Marks: {{ question.marks || 0 }}
                       </small>
                     </div>
                     <div class="btn-group btn-group-sm">
-                      <button
+                      <!-- <button
                         class="btn btn-outline-primary"
                         @click="editQuestion(question)"
                         title="Edit Question"
                       >
                         <i class="fas fa-edit"></i>
-                      </button>
+                      </button> -->
                       <button
-                        class="btn btn-outline-danger"
+                        class="btn btn-danger"
                         @click="deleteQuestion(question.id)"
                         title="Delete Question"
                       >
-                        <i class="fas fa-trash"></i>
+                        Delete
                       </button>
                     </div>
                   </div>
 
                   <div class="card-body">
-                    <div class="row">
-                      <div class="col-12">
-                        <h6 class="mb-2">Options:</h6>
-                        <div class="list-group list-group-flush">
-                          <div
-                            v-for="option in question.options"
-                            :key="option.id"
-                            class="list-group-item d-flex align-items-center"
-                            :class="{
-                              'list-group-item-success': option.is_correct,
-                            }"
-                          >
-                            <i
-                              class="fas me-2"
-                              :class="
-                                option.is_correct
-                                  ? 'fa-check-circle text-success'
-                                  : 'fa-circle text-muted'
-                              "
-                            ></i>
-                            <span>{{ option.text }}</span>
-                            <span
-                              v-if="option.is_correct"
-                              class="badge bg-success ms-auto"
-                            >
-                              Correct
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <h6 class="mb-2">Options:</h6>
+                    <ul class="list-group">
+                      <li
+                        v-for="(option, optIndex) in question.options"
+                        :key="optIndex"
+                        class="list-group-item d-flex align-items-center"
+                        :class="{
+                          'list-group-item-success': option === question.answer,
+                        }"
+                      >
+                        <i
+                          class="fas me-2"
+                          :class="
+                            option === question.answer
+                              ? 'fa-check-circle text-success'
+                              : 'fa-circle text-muted'
+                          "
+                        ></i>
+                        <span>{{ option }}</span>
+                        <span
+                          v-if="option === question.answer"
+                          class="badge bg-success ms-auto"
+                        >
+                          Correct
+                        </span>
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -249,7 +242,7 @@
 
 <script>
 import AddQuestionsToQuizzesModal from "@/components/fragments/AddQuestionsToQuizzesModal.vue";
-import { make_getrequest } from "@/stores/appState";
+import { make_getrequest, make_deleterequest } from "@/stores/appState";
 
 export default {
   name: "ViewAndAddQuestionsModal",
@@ -310,10 +303,13 @@ export default {
       this.error = null;
 
       try {
-        const response = await make_getrequest(
-          `/quizzes/${this.quiz.quiz_id}/questions`
-        );
-        this.questions = response.questions || [];
+        const response = await make_getrequest(`/questions`, {
+          quiz_id: this.quiz.quiz_id,
+        });
+        console.log("Fetched questions:", response);
+        this.questions = Array.isArray(response.data.questions)
+          ? response.data.questions
+          : [];
         this.lastUpdated = new Date();
       } catch (error) {
         console.error("Failed to fetch questions:", error);
@@ -349,12 +345,21 @@ export default {
       }
 
       try {
-        // await make_deleterequest(`/questions/${questionId}`);
+        const response = await make_deleterequest(`/questions`, {
+          question_id: questionId,
+        });
+        console.log("Delete response:", response);
+
+        // Remove the deleted question from the list
         this.questions = this.questions.filter((q) => q.id !== questionId);
         this.lastUpdated = new Date();
+        alert("Question deleted successfully.");
       } catch (error) {
         console.error("Failed to delete question:", error);
-        alert("Failed to delete question. Please try again.");
+        alert(
+          error.response?.data?.message ||
+            "Failed to delete question. Please try again."
+        );
       }
     },
 
