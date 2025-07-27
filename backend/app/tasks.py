@@ -8,13 +8,13 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from flask import Flask
-from flask_mail import Message
-
 from app.celery_app import celery_app
 from app.config import Config
 from app.email import send_email, send_email_with_attachment
 from app.models import Quiz, Score, User, db
+from flask import Flask
+from flask_mail import Message
+
 
 @celery_app.task(bind=True)
 def send_daily_reminders(self):

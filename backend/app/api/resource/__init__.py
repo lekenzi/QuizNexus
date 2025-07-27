@@ -5,19 +5,27 @@ import time
 from datetime import datetime, timezone
 from operator import ge
 
+from app.api.validators import (
+    UserLoginParser,
+    UserRegisterParser,
+    add_chapter_parser,
+    add_quiz_parser,
+    add_subject_parser,
+    checkTokenParser,
+    questions_add_parser,
+    take_response_parser,
+)
+from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
+from app.models import Chapter, Question, Quiz, QuizResponse, Score, Subject, User, db
 from flask import make_response, request
-from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
-                                jwt_required)
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+)
 from flask_restful import Resource
 from werkzeug.security import generate_password_hash
-
-from app.api.validators import (UserLoginParser, UserRegisterParser,
-                                add_chapter_parser, add_quiz_parser,
-                                add_subject_parser, checkTokenParser,
-                                questions_add_parser, take_response_parser)
-from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
-from app.models import (Chapter, Question, Quiz, QuizResponse, Score, Subject,
-                        User, db)
 
 
 class CheckTokenValidResource(Resource):
@@ -597,16 +605,22 @@ class UserDashboardResource(Resource):
 
         current_datetime = datetime.now()
 
-        for quiz in quizzes: #possible bug here if time_of_day is None
-            quiz_datetime = datetime.combine(quiz.date_of_quiz, quiz.time_of_day) if quiz.time_of_day else datetime.combine(quiz.date_of_quiz, datetime.min.time())
+        for quiz in quizzes:  # possible bug here if time_of_day is None
+            quiz_datetime = (
+                datetime.combine(quiz.date_of_quiz, quiz.time_of_day)
+                if quiz.time_of_day
+                else datetime.combine(quiz.date_of_quiz, datetime.min.time())
+            )
             quiz_data = {
-            "id": quiz.id,
-            "title": quiz.quiz_title,
-            "date_of_quiz": quiz.date_of_quiz.isoformat(),
-            "duration": quiz.time_duration,
-            "chapter": quiz.chapter_id,
-            "subject": quiz.subject_id,
-            "time_of_day": quiz.time_of_day.isoformat() if quiz.time_of_day else None,
+                "id": quiz.id,
+                "title": quiz.quiz_title,
+                "date_of_quiz": quiz.date_of_quiz.isoformat(),
+                "duration": quiz.time_duration,
+                "chapter": quiz.chapter_id,
+                "subject": quiz.subject_id,
+                "time_of_day": (
+                    quiz.time_of_day.isoformat() if quiz.time_of_day else None
+                ),
             }
             if quiz_datetime >= current_datetime:
                 upcoming_quizzes.append(quiz_data)
@@ -687,7 +701,9 @@ class TakeQuizResource(Resource):
                 "quiz_id": quiz.id,
                 "number_of_questions": len(questions),
                 "time_duration": quiz.time_duration,
-                "time_of_day": quiz.time_of_day.isoformat() if quiz.time_of_day else None,
+                "time_of_day": (
+                    quiz.time_of_day.isoformat() if quiz.time_of_day else None
+                ),
                 "questions": questions_data,
             }
         }, 200

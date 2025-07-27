@@ -5,10 +5,9 @@ Run with: python check_quiz_data.py
 
 from datetime import datetime
 
-from flask import Flask
-
 from app.config import Config
 from app.models import Quiz, db
+from flask import Flask
 
 app = Flask(__name__)
 app.config.from_object(Config)
