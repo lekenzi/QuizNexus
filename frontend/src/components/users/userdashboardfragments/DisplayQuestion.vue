@@ -58,9 +58,9 @@
     </div>
   </div>
 </template>
-
 <script>
-import { getUser } from "@/stores/appState";
+import { getUser, make_postrequest } from "@/stores/appState";
+
 export default {
   name: "DisplayQuestion",
   props: {
@@ -75,10 +75,30 @@ export default {
     };
   },
   methods: {
-    handleOptionSelect(question_id, user_id, selectedOption) {
+    async handleOptionSelect(question_id, user_id, selectedOption) {
       console.log("Question ID:", question_id);
       console.log("User ID:", this.user_id);
       console.log("Selected Option:", selectedOption);
+
+      try {
+        // Ensure the payload matches the server's expected format
+        const payload = {
+          quiz_id: this.questions.quiz_id,
+          question_id: question_id,
+          user_id: this.user_id,
+          selected_option: selectedOption,
+        };
+
+        console.log("Payload being sent:", payload);
+
+        const response = await make_postrequest("/takeResponse", payload);
+        console.log("Response recorded successfully:", response);
+      } catch (error) {
+        console.error(
+          "Error recording response:",
+          error.response?.data || error.message
+        );
+      }
     },
   },
 };

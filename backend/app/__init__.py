@@ -1,5 +1,11 @@
 from datetime import datetime
 
+from flask import Flask
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
+from werkzeug.security import generate_password_hash
+
 from app import worker
 from app.api import api
 from app.cache import redis_client
@@ -7,11 +13,7 @@ from app.config import Config
 from app.email import configure_mail
 from app.models import User, db
 from app.worker import configure_celery
-from flask import Flask
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager
-from flask_migrate import Migrate
-from werkzeug.security import generate_password_hash
+from app.api.SocketIO import socketio
 
 celery = None
 
@@ -49,15 +51,19 @@ def create_app():
     Migrate(app, db)
     JWTManager(app)
     CORS(app)
+    socketio.init_app(app, cors_allowed_origins="http://localhost:8080")
 
     global celery
-    celery = configure_celery(app)
+    celery = configure_celery(app)  # Initialize Celery with the app
 
     with app.app_context():
         redis_client.ping()
         print("Redis connected successfully!")
 
-    mail = configure_mail(app)
+        db.create_all()
+        create_super_admin()
+
+    configure_mail(app)
 
     api.init_app(app)
 

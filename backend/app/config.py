@@ -23,3 +23,5 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = "sqlite:///quiznexus.sqlite3"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    REDIS_URL = "redis://localhost:6379/0"

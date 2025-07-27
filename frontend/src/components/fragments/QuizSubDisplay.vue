@@ -135,7 +135,6 @@ export default {
       try {
         const response = await make_getrequest(endpoint);
         this.quizzes = response.quizzes || [];
-        console.log("Fetched quizzes:", this.quizzes);
       } catch (error) {
         console.error("Error fetching quizzes:", error);
         this.quizzes = [];

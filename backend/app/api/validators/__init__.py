@@ -112,6 +112,13 @@ add_quiz_parser.add_argument(
     location="json",
 )
 add_quiz_parser.add_argument(
+    "time_of_day",
+    type=str,
+    required=False,
+    help="Time of day is optional, default is current time",
+    location="json",
+)
+add_quiz_parser.add_argument(
     "remarks",
     type=str,
     required=False,
@@ -210,5 +217,37 @@ questions_add_parser.add_argument(
     type=int,
     required=True,
     help="Subject ID is required",
+    location="json",
+)
+
+
+take_response_parser = reqparse.RequestParser()
+take_response_parser.add_argument(
+    "quiz_id",
+    type=int,
+    required=True,
+    help="Quiz ID is required",
+    location="json",
+)
+
+take_response_parser.add_argument(
+    "question_id",
+    type=int,
+    required=True,
+    help="Question ID is required",
+    location="json",
+)
+take_response_parser.add_argument(
+    "user_id",
+    type=int,
+    required=True,
+    help="User ID is required",
+    location="json",
+)
+take_response_parser.add_argument(
+    "selected_option",
+    type=str,
+    required=True,
+    help="Selected option is required",
     location="json",
 )

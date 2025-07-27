@@ -7,14 +7,40 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import requests
-from app.email import send_email, send_email_with_attachment
-from celery import current_app
+from app.celery_app import celery_app
 from flask_mail import Message
-from models import Quiz, Score, User
+from app.models import Quiz, Score, User
+
+from app.email import send_email, send_email_with_attachment
+from app.api.SocketIO import socketio
 
 
-@current_app.task(bind=True)
+
+@celery_app.task
+def check_and_start_exams():
+    """Check if there are any exams scheduled for today and start them"""
+    today = datetime.now().date()
+    quizzes = Quiz.query.filter(Quiz.date_of_quiz == today).all()
+
+    if not quizzes:
+        return "No exams scheduled for today"
+
+    for quiz in quizzes:
+        # Logic to start the quiz, e.g., notify users or prepare the quiz environment
+        print(f"Starting quiz: {quiz.title} scheduled for {today}")
+    
+    return f"Started {len(quizzes)} quizzes scheduled for today"
+
+
+
+
+
+
+
+
+
+
+@celery_app.task(bind=True)
 def send_daily_reminders(self):
     """Send daily quiz reminders to users"""
     try:
@@ -41,7 +67,7 @@ def send_daily_reminders(self):
         self.retry(countdown=60, max_retries=3)
 
 
-@current_app.task(bind=True)
+@celery_app.task(bind=True)
 def send_monthly_reports(self):
     """Generate and send monthly performance reports"""
     try:
@@ -53,7 +79,7 @@ def send_monthly_reports(self):
         self.retry(countdown=60, max_retries=3)
 
 
-@current_app.task
+@celery_app.task
 def send_reminder_email(user_id, quiz_count):
     """Send email reminder to specific user"""
     user = User.query.get(user_id)
@@ -75,7 +101,7 @@ def send_reminder_email(user_id, quiz_count):
     return f"Reminder sent to {user.username}"
 
 
-@current_app.task
+@celery_app.task
 def generate_monthly_report(user_id):
     """Generate monthly performance report for user"""
     user = User.query.get(user_id)
@@ -134,7 +160,7 @@ def generate_monthly_report(user_id):
     return f"Monthly report sent to {user.username}"
 
 
-@current_app.task
+@celery_app.task
 def export_quiz_data_csv(user_id):
     """Export user's quiz data to CSV"""
     user = User.query.get(user_id)

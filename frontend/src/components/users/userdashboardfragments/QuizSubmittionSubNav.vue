@@ -5,17 +5,26 @@
       style="width: 380px; flex-shrink: 0"
     >
       <p class="mb-3"><strong>Quiz ID:</strong> {{ quiz_id }}</p>
-      <button
-        type="button"
-        class="btn btn-success mb-3"
-        @click="triggerSocketToStartQuiz"
-      >
-        <strong>START QUIZ</strong>
-      </button>
-      <QuestionGridBlock :quiz_id="quiz_id" class="mb-3" />
-      <button class="btn btn-danger" @click="triggerSocketToEndQuiz">
-        End Quiz
-      </button>
+      <div v-if="quizEndedMessage">
+        <strong class="text-success">{{ quizEndedMessage }}</strong>
+      </div>
+      <div v-else>
+        <div v-if="countdown > 0" class="mb-3">
+          <strong>Quiz starts in: {{ countdown }} seconds</strong>
+        </div>
+        <button
+          v-else
+          type="button"
+          class="btn btn-success mb-3"
+          @click="triggerSocketToStartQuiz"
+        >
+          <strong>START QUIZ</strong>
+        </button>
+        <QuestionGridBlock :quiz_id="quiz_id" class="mb-3" />
+        <button class="btn btn-danger" @click="triggerSocketToEndQuiz">
+          End Quiz
+        </button>
+      </div>
     </div>
     <div class="flex-grow-1 bg-light p-3">
       <slot></slot>
@@ -26,6 +35,8 @@
 <script>
 import { useRouter } from "vue-router";
 import QuestionGridBlock from "./QuestionGridBlock.vue";
+import { io } from "socket.io-client";
+
 export default {
   name: "QuizSubmissionSubNav",
   props: {
@@ -60,21 +71,68 @@ export default {
       navigateToQuestion,
     };
   },
+  data() {
+    return {
+      socket: null,
+      countdown: 0, // Countdown timer state
+      quizEndedMessage: "", // State to store the quiz ended message
+    };
+  },
+  created() {
+    const token = localStorage.getItem("token"); // Retrieve JWT token from local storage
+    if (!token) {
+      console.error("JWT token not found in local storage.");
+      return;
+    }
+
+    this.socket = io("http://localhost:5000", {
+      auth: {
+        token: token, // Send the JWT token as part of the socket authentication
+      },
+    });
+
+    this.socket.on("connect", () => {
+      console.log("Socket connected:", this.socket.id);
+    });
+
+    // Listen for countdown event from the server
+    this.socket.on("countdown", (data) => {
+      if (data.count === "Go!") {
+        this.countdown = 0;
+        console.log("Quiz started!");
+      } else {
+        this.countdown = data.count;
+      }
+    });
+
+    // Listen for quiz_ended event from the server
+    this.socket.on("quiz_ended", (data) => {
+      this.quizEndedMessage = "You have completed your test"; // Set the message
+      console.log("Quiz ended:", data.message);
+    });
+  },
   methods: {
     triggerSocketToStartQuiz() {
-      console.log("Starting quiz with ID:", this.quiz_id);
-      this.$emit("start-quiz", this.quiz_id);
+      if (this.socket) {
+        this.socket.emit("startquiz");
+        console.log("Quiz started with ID:", this.quiz_id);
+      } else {
+        console.error("Socket is not initialized.");
+      }
     },
     triggerSocketToEndQuiz() {
-      console.log("Ending quiz with ID:", this.quiz_id);
-      this.$emit("end-quiz", this.quiz_id);
+      if (this.socket) {
+        this.socket.emit("endquiz");
+      } else {
+        console.error("Socket is not initialized.");
+      }
     },
   },
   beforeUnmount() {
+    if (this.socket) {
+      this.socket.disconnect();
+    }
     this.triggerSocketToEndQuiz();
-    console.log(
-      "QuizSubmissionSubNav component is being unmounted, ending quiz."
-    );
   },
 };
 </script>

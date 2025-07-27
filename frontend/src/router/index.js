@@ -142,7 +142,6 @@ router.beforeEach(async (to, _from, next) => {
 
       // Check for role-based access
       const userRole = await getUserrole();
-      console.log("User role:", userRole);
       if (to.meta.requiresRole && to.meta.requiresRole !== userRole) {
         return next({ name: "unauthorized" });
       }

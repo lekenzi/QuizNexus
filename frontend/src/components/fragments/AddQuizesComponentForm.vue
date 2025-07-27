@@ -68,6 +68,20 @@
                 />
               </div>
               <div class="mb-3">
+                <label for="time_of_day" class="form-label">Time of Day</label>
+                <select
+                  class="form-control"
+                  id="time_of_day"
+                  v-model="form.time_of_day"
+                  required
+                >
+                  <option value="" disabled>Select time</option>
+                  <option v-for="hour in hours" :key="hour" :value="hour">
+                    {{ hour }}:00
+                  </option>
+                </select>
+              </div>
+              <div class="mb-3">
                 <label for="subject" class="form-label">Subject</label>
                 <select
                   class="form-control"
@@ -140,7 +154,6 @@
     <div v-if="showModal" class="modal-backdrop fade show"></div>
   </div>
 </template>
-
 <script>
 import { make_postrequest, make_getrequest } from "@/stores/appState";
 
@@ -162,9 +175,11 @@ export default {
         date: "",
         subject: "",
         chapter: "",
+        time_of_day: "",
       },
       subjects: [],
       chapters: [],
+      hours: Array.from({ length: 24 }, (_, i) => i), // Generate hours 0-23
       loading: {
         subjects: false,
         chapters: false,
@@ -256,6 +271,7 @@ export default {
         date: "",
         subject: "",
         chapter: "",
+        time_of_day: "",
       };
       this.chapters = [];
     },
@@ -269,6 +285,7 @@ export default {
           date: this.form.date,
           subject_id: this.form.subject,
           chapter_id: this.form.chapter,
+          time_of_day: this.form.time_of_day,
         };
 
         const response = await make_postrequest("/quizzes", payload);

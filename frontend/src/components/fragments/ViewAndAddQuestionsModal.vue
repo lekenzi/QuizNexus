@@ -341,7 +341,6 @@ export default {
     editQuestion(question) {
       // Emit event to parent or handle edit logic
       this.$emit("edit-question", question);
-      console.log("Edit question:", question);
     },
 
     async deleteQuestion(questionId) {
@@ -353,7 +352,6 @@ export default {
         // await make_deleterequest(`/questions/${questionId}`);
         this.questions = this.questions.filter((q) => q.id !== questionId);
         this.lastUpdated = new Date();
-        console.log("Question deleted:", questionId);
       } catch (error) {
         console.error("Failed to delete question:", error);
         alert("Failed to delete question. Please try again.");
@@ -376,9 +374,7 @@ export default {
     },
   },
 
-  mounted() {
-    console.log("Quiz Data:", this.quiz);
-  },
+  mounted() {},
 
   // Cleanup when component is destroyed
   beforeUnmount() {

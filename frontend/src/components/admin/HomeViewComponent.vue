@@ -11,7 +11,7 @@
 
     <div class="row">
       <div v-for="subject in subjects" :key="subject.id">
-        <TableComponent :subject="subject" />
+        <TableComponent :subject="subject" @refresh-subjects="fetchSubjects" />
       </div>
     </div>
   </div>

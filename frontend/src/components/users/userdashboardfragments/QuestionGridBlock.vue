@@ -25,13 +25,10 @@ export default {
     };
   },
   methods: {
-    fetchQuizData() {
-      console.log("Fetching quiz data for quiz ID:", this.quiz_id);
-    },
+    fetchQuizData() {},
   },
   mounted() {
     this.fetchQuizData();
-    console.log("number of questions:", this.number_of_questions);
   },
 };
 </script>

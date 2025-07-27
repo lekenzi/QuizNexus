@@ -1,29 +1,25 @@
 import email
 import logging
+import select
 from datetime import datetime
+from operator import ge
+import time
 
 import jwt
-from app.api.validators import (
-    UserLoginParser,
-    UserRegisterParser,
-    add_chapter_parser,
-    add_quiz_parser,
-    add_subject_parser,
-    checkTokenParser,
-    questions_add_parser,
-)
-from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
-from app.models import Chapter, Question, Quiz, Score, Subject, User, db
 from celery import chain
 from flask import make_response, request
-from flask_jwt_extended import (
-    create_access_token,
-    get_jwt,
-    get_jwt_identity,
-    jwt_required,
-)
+from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
+                                jwt_required)
 from flask_restful import Resource
 from werkzeug.security import generate_password_hash
+
+from app.api.validators import (UserLoginParser, UserRegisterParser,
+                                add_chapter_parser, add_quiz_parser,
+                                add_subject_parser, checkTokenParser,
+                                questions_add_parser, take_response_parser)
+from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
+from app.models import (Chapter, Question, Quiz, QuizResponse, Score, Subject,
+                        User, db)
 
 
 class CheckTokenValidResource(Resource):
@@ -111,8 +107,8 @@ class UserRegisterResource(Resource):
         new_user.full_name = full_name
         new_user.date_of_birth = datetime.strptime(date_of_birth, "%Y-%m-%d")
         new_user.password_hash = generate_password_hash(password)
-        new_user.qualification = "Student"  # Default qualification
-        new_user.role = "user"  # Default role
+        new_user.qualification = "Student"
+        new_user.role = "user"
 
         db.session.add(new_user)
         db.session.commit()
@@ -142,7 +138,7 @@ class UserLogoutResource(Resource):
         try:
             jwt_claims = get_jwt()
             jti = jwt_claims.get("jti")
-            current_user_id = get_jwt_identity()  # now a string like "1"
+            current_user_id = get_jwt_identity()
             logging.info(f"User {current_user_id} logging out, JWT ID: {jti}")
             return {
                 "message": "User logged out successfully",
@@ -177,28 +173,47 @@ class SubjectResources(Resource):
 
     @jwt_auth_required
     @role_required(["admin"])
+    def patch(self):
+        args = add_subject_parser.parse_args()
+        subject_name = args["name"]
+        subject_description = args["description"]
+
+        if not subject_name or not subject_description:
+            return {"message": "Subject name and description are required"}, 400
+
+        existing_subject = Subject.query.filter_by(name=subject_name).first()
+        if existing_subject:
+            return {"message": "Subject already exists"}, 400
+
+        new_subject = Subject()
+        new_subject.name = subject_name
+        new_subject.description = subject_description
+
+        db.session.add(new_subject)
+        db.session.commit()
+
+        return {"message": "Subject created successfully", "subject_id": new_subject.id}, 201
+    
+    @jwt_auth_required
+    @role_required(["admin"])
     def post(self):
         try:
             logging.info("POST request received to /api/home")
             logging.info(f"Request content type: {request.content_type}")
             logging.info(f"Request data: {request.get_data(as_text=True)}")
 
-            # Check if request has JSON data
             if not request.is_json:
                 return {"message": "Request must be JSON"}, 400
 
-            # Get JSON data
             json_data = request.get_json()
             logging.info(f"JSON data: {json_data}")
 
             if not json_data:
                 return {"message": "No JSON data provided"}, 400
 
-            # Extract fields
             subject_name = json_data.get("name")
             subject_description = json_data.get("description")
 
-            # Check if required fields are present
             if not subject_name:
                 logging.warning("Missing 'name' field in request")
                 return {"message": "Subject name is required"}, 400
@@ -206,12 +221,10 @@ class SubjectResources(Resource):
                 logging.warning("Missing 'discription' field in request")
                 return {"message": "Subject description is required"}, 400
 
-            # Check if subject already exists
             existing_subject = Subject.query.filter_by(name=subject_name).first()
             if existing_subject:
                 return {"message": "Subject already exists"}, 400
 
-            # Create new subject
             new_subject = Subject()
             new_subject.name = subject_name
             new_subject.description = subject_description
@@ -225,22 +238,6 @@ class SubjectResources(Resource):
             logging.error(f"Error creating subject: {str(e)}")
             logging.error(f"Exception type: {type(e).__name__}")
             return {"message": f"Error creating subject: {str(e)}"}, 500
-
-    # @jwt_auth_required
-    # @role_required(["admin"])
-    # def patch(self):
-    #     args = add_subject_parser.parse_args()
-    #     subject_name = args["name"]
-    #     subject_description = args["discription"]
-    #     existing_subject = Subject.query.filter_by(name=subject_name).first()
-
-    #     if not existing_subject:
-    #         return {"message": "Subject not found"}, 404
-
-    #     existing_subject.description = subject_description
-    #     db.session.commit()
-
-    #     return {"message": "Subject updated successfully"}, 200
 
     @jwt_auth_required
     @role_required(["admin"])
@@ -279,7 +276,7 @@ class ChapterResources(Resource):
             return {"message": "No chapters found for the given subject"}, 404
 
         chapters_data = [
-            {"id": chapter.id, "name": chapter.name} for chapter in chapters
+            {"id": chapter.id, "name": chapter.name, "description": chapter.description} for chapter in chapters
         ]
 
         return {"data": {"subject_id": subject_id, "chapters": chapters_data}}, 200
@@ -312,8 +309,9 @@ class ChapterResources(Resource):
 
     @jwt_auth_required
     @role_required(["admin"])
-    def patch(self, chapter_id):
+    def patch(self):
         args = request.get_json()
+        chapter_id = args.get("id")
         chapter_name = args.get("name")
         chapter_description = args.get("description")
 
@@ -332,7 +330,9 @@ class ChapterResources(Resource):
 
     @jwt_auth_required
     @role_required(["admin"])
-    def delete(self, chapter_id):
+    def delete(self):
+        args = request.get_json()
+        chapter_id = args.get("id")
         chapter = Chapter.query.get(chapter_id)
         if not chapter:
             return {"message": "Chapter not found"}, 404
@@ -406,6 +406,9 @@ class QuizResources(Resource):
             date
             :
             "2025-07-15"
+            time_of_day
+            :
+            "12:00:00"
             remarks
             :
             "jhvjhv"
@@ -420,10 +423,11 @@ class QuizResources(Resource):
             "hello"
         """
         args = add_quiz_parser.parse_args()
-        # log args for debugging
+
         logging.info(f"Received args for quiz creation: {args}")
         quiz_title = args["title"]
         time_duration = args["timeduration"]
+        time_of_day = datetime.strptime(f"{args.get('time_of_day', '0')}:00", "%H:%M").time()
         chapter_id = args["chapter_id"]
         subject_id = args["subject_id"]
         date = args["date"]
@@ -442,7 +446,6 @@ class QuizResources(Resource):
         if not subject:
             return {"message": "Subject not found"}, 404
 
-        # Convert date string to Python datetime object
         try:
             date_of_quiz = datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
@@ -451,6 +454,7 @@ class QuizResources(Resource):
         new_quiz = Quiz(
             quiz_title=quiz_title,
             time_duration=time_duration,
+            time_of_day=time_of_day,
             chapter_id=chapter_id,
             subject_id=subject_id,
             date_of_quiz=date_of_quiz,
@@ -573,7 +577,7 @@ class UserDashboardResource(Resource):
                 {
                     "id": quiz.id,
                     "title": quiz.quiz_title,
-                    "date_of_quiz": quiz.date_of_quiz.isoformat(),  # Convert datetime to ISO format
+                    "date_of_quiz": quiz.date_of_quiz.isoformat(),
                     "duration": quiz.time_duration,
                     "chapter": quiz.chapter_id,
                     "subject": quiz.subject_id,
@@ -653,3 +657,74 @@ class TakeQuizResource(Resource):
                 "questions": questions_data,
             }
         }, 200
+
+class TakeResponseResource(Resource):
+    @jwt_auth_required
+    @role_required(["user"])
+    def post(self):
+        """
+        Submit the quiz responses and calculate the score.
+        Expects a JSON body with quiz_id, question_id, and selected_option.
+        """
+        try:
+            # Validate user authentication
+            user_id = get_jwt_identity()
+            if not user_id:
+                return {"message": "Authentication required"}, 401
+
+            args = take_response_parser.parse_args()
+            quiz_id = args["quiz_id"]
+            question_id = args["question_id"]
+            selected_option = args["selected_option"]
+
+            # Validate quiz exists
+            quiz = Quiz.query.get(quiz_id)
+            if not quiz:
+                return {"message": "Quiz not found"}, 404
+
+            # Validate question exists
+            question = Question.query.get(question_id)
+            if not question:
+                return {"message": "Question not found"}, 404
+
+            # Check for existing response
+            existing_response = QuizResponse.query.filter_by(
+                quiz_id=quiz_id,
+                user_id=user_id,
+                question_id=question_id
+            ).first()
+
+            if existing_response:
+                # Update existing response
+                existing_response.selected_option = selected_option
+                existing_response.is_correct = (question.answer == selected_option)
+                existing_response.timestamp = datetime.now()
+                response_id = existing_response.id
+            else:
+                # Create new response
+                quiz_response = QuizResponse(
+                    quiz_id=quiz_id,
+                    user_id=user_id,
+                    question_id=question_id,
+                    selected_option=selected_option,
+                    is_correct=(question.answer == selected_option),
+                    timestamp=datetime.now()
+                )
+                db.session.add(quiz_response)
+                response_id = quiz_response.id
+
+            db.session.commit()
+
+            return {
+                "message": "Response recorded successfully",
+                "quiz_response_id": response_id,
+                "status": "success"
+            }, 201
+
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Error recording response: {str(e)}")
+            return {
+                "message": "Error recording response",
+                "error": str(e)
+            }, 500

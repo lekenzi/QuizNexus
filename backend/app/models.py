@@ -41,12 +41,15 @@ class Quiz(db.Model):
         default=lambda: datetime.now(timezone.utc)
         + timedelta(days=8 if datetime.now(timezone.utc).weekday() == 6 else 7),
     )
+    time_of_day = db.Column(db.Time, default=datetime.now().time())
+
     time_duration = db.Column(db.Integer, default=60, nullable=False)
     remarks = db.Column(db.String(140))
     quiz_title = db.Column(db.String(140))
     chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"))
     subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"))
     questions_id = db.relationship("Question", backref="quiz", lazy="dynamic")
+    started = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return "<Quiz {}>".format(self.id)

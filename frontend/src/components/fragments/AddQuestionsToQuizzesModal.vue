@@ -151,7 +151,6 @@ export default {
         };
         const response = await make_postrequest("/questions", payload);
         if (response.status === 201) {
-          console.log("Question added successfully:", response.data);
           alert("Question added successfully!");
           this.showModal = false;
           this.resetForm();

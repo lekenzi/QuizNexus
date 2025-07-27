@@ -44,7 +44,6 @@ export default {
       return new Date(date).toLocaleDateString(undefined, options);
     },
     handleAction(quizId) {
-      console.log(`Action triggered for quiz ID: ${quizId}`);
       this.$router.push({ name: "quiz_page", params: { quiz_id: quizId } });
     },
   },

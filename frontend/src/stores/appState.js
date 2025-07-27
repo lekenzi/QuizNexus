@@ -128,8 +128,6 @@ const store = new Vuex.Store({
         });
 
         if (response.status === 200 && response.data.role) {
-          // console.log("User role fetched successfully:", response.data.role);
-
           return response.data.role;
         } else {
           throw new Error("Failed to fetch user role");
@@ -219,7 +217,6 @@ export async function make_getrequest(url, params = {}) {
       Authorization: `Bearer ${store.state.TOKEN}`,
     },
   });
-  console.log("make_getrequest called with URL:", response);
   if (!response.ok) {
     throw new Error("Network response was not ok");
   }
@@ -238,7 +235,7 @@ export async function make_postrequest(url, data = {}) {
     },
     body: JSON.stringify(data),
   });
-
+  console.log("POST Response:", response);
   if (!response.ok) {
     throw new Error("Network response was not ok", await response.json());
   }
@@ -251,6 +248,25 @@ export async function make_putrequest(url, data = {}) {
   const token = localStorage.getItem("token") || store.state.TOKEN;
   const response = await fetch(`${store.state.BASEURL}${url}`, {
     method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Network response was not ok");
+  }
+
+  const responseData = await response.json();
+  return responseData;
+}
+
+export async function make_deleterequest(url, data = {}) {
+  const token = localStorage.getItem("token") || store.state.TOKEN;
+  const response = await fetch(`${store.state.BASEURL}${url}`, {
+    method: "DELETE",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,

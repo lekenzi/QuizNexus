@@ -33,11 +33,11 @@ export default {
       const response = await make_getrequest("/fetchQuestions", {
         quiz_id: this.quiz_id,
       });
-      console.log("fetch questions response", response.data);
       this.questions = response.data;
     },
     handleQuestionSelect(selectedQuestion) {
-      console.log("Selected question:", selectedQuestion);
+      // Logic to handle question selection, if needed
+      selectedQuestion;
     },
   },
   components: {
