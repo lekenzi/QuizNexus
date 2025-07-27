@@ -9,17 +9,16 @@
         <strong class="text-success">{{ quizEndedMessage }}</strong>
       </div>
       <div v-else>
-        <div v-if="countdown > 0" class="mb-3">
-          <strong>Quiz starts in: {{ countdown }} seconds</strong>
-        </div>
-        <button
-          v-else
-          type="button"
-          class="btn btn-success mb-3"
-          @click="triggerSocketToStartQuiz"
+        <div
+          v-if="countdown.minutes >= 0 && countdown.seconds >= 0"
+          class="mb-3"
         >
-          <strong>START QUIZ</strong>
-        </button>
+          <strong>
+            Quiz starts in: {{ countdown.minutes }}:{{
+              countdown.seconds.toString().padStart(2, "0")
+            }}
+          </strong>
+        </div>
         <QuestionGridBlock :quiz_id="quiz_id" class="mb-3" />
         <button class="btn btn-danger" @click="triggerSocketToEndQuiz">
           End Quiz
@@ -42,6 +41,10 @@ export default {
   props: {
     quiz_id: {
       type: Number,
+      required: true,
+    },
+    quiz_start_time: {
+      type: String, // Expecting ISO 8601 format (e.g., "2023-10-01T10:00:00Z")
       required: true,
     },
   },
@@ -74,8 +77,9 @@ export default {
   data() {
     return {
       socket: null,
-      countdown: 0, // Countdown timer state
+      countdown: { minutes: -1, seconds: -1 }, // Countdown timer state
       quizEndedMessage: "", // State to store the quiz ended message
+      countdownInterval: null, // Interval for updating the countdown
     };
   },
   created() {
@@ -93,32 +97,37 @@ export default {
 
     this.socket.on("connect", () => {
       console.log("Socket connected:", this.socket.id);
+
+      // Automatically join the quiz room
+      this.socket.emit("join_quiz", { quiz_id: this.quiz_id });
     });
 
-    // Listen for countdown event from the server
-    this.socket.on("countdown", (data) => {
-      if (data.count === "Go!") {
-        this.countdown = 0;
-        console.log("Quiz started!");
-      } else {
-        this.countdown = data.count;
-      }
-    });
-
-    // Listen for quiz_ended event from the server
+    // Listen for quiz ended event
     this.socket.on("quiz_ended", (data) => {
       this.quizEndedMessage = "You have completed your test"; // Set the message
-      console.log("Quiz ended:", data.message);
+      console.log(`Quiz ${data.quiz_id} has ended`);
     });
+
+    // Start the countdown timer
+    this.startCountdown();
   },
   methods: {
-    triggerSocketToStartQuiz() {
-      if (this.socket) {
-        this.socket.emit("startquiz");
-        console.log("Quiz started with ID:", this.quiz_id);
-      } else {
-        console.error("Socket is not initialized.");
-      }
+    startCountdown() {
+      const quizStartTime = new Date(this.quiz_start_time).getTime();
+      this.countdownInterval = setInterval(() => {
+        const now = new Date().getTime();
+        const timeDifference = quizStartTime - now;
+
+        if (timeDifference <= 0) {
+          clearInterval(this.countdownInterval);
+          this.countdown = { minutes: 0, seconds: 0 };
+          console.log("Quiz has started!");
+        } else {
+          const minutes = Math.floor(timeDifference / (1000 * 60));
+          const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
+          this.countdown = { minutes, seconds };
+        }
+      }, 1000);
     },
     triggerSocketToEndQuiz() {
       if (this.socket) {
@@ -131,6 +140,9 @@ export default {
   beforeUnmount() {
     if (this.socket) {
       this.socket.disconnect();
+    }
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
     }
     this.triggerSocketToEndQuiz();
   },

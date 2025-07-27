@@ -14,6 +14,7 @@ from app.api.resource import (ChapterResources, CheckTokenValidResource,
                               UserDashboardResource, UserLoginResource,
                               UserLogoutResource, UserRegisterResource)
 
+
 api.add_resource(UserLoginResource, "/api/login", endpoint="login")
 api.add_resource(UserRegisterResource, "/api/register", endpoint="register")
 api.add_resource(UserLogoutResource, "/api/logout", endpoint="logout")
@@ -31,3 +32,4 @@ api.add_resource(UserDashboardResource, "/api/dashboard", endpoint="dashboard")
 api.add_resource(ScoresResource, "/api/scores", endpoint="scores")
 api.add_resource(TakeQuizResource, "/api/fetchQuestions", endpoint="fetchQuestions")
 api.add_resource(TakeResponseResource, "/api/takeResponse", endpoint="takeResponse")
+

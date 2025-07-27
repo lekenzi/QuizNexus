@@ -1,9 +1,9 @@
 import email
 import logging
 import select
+import time
 from datetime import datetime
 from operator import ge
-import time
 
 import jwt
 from celery import chain
@@ -192,8 +192,11 @@ class SubjectResources(Resource):
         db.session.add(new_subject)
         db.session.commit()
 
-        return {"message": "Subject created successfully", "subject_id": new_subject.id}, 201
-    
+        return {
+            "message": "Subject created successfully",
+            "subject_id": new_subject.id,
+        }, 201
+
     @jwt_auth_required
     @role_required(["admin"])
     def post(self):
@@ -276,7 +279,8 @@ class ChapterResources(Resource):
             return {"message": "No chapters found for the given subject"}, 404
 
         chapters_data = [
-            {"id": chapter.id, "name": chapter.name, "description": chapter.description} for chapter in chapters
+            {"id": chapter.id, "name": chapter.name, "description": chapter.description}
+            for chapter in chapters
         ]
 
         return {"data": {"subject_id": subject_id, "chapters": chapters_data}}, 200
@@ -427,7 +431,9 @@ class QuizResources(Resource):
         logging.info(f"Received args for quiz creation: {args}")
         quiz_title = args["title"]
         time_duration = args["timeduration"]
-        time_of_day = datetime.strptime(f"{args.get('time_of_day', '0')}:00", "%H:%M").time()
+        time_of_day = datetime.strptime(
+            f"{args.get('time_of_day', '0')}:00", "%H:%M"
+        ).time()
         chapter_id = args["chapter_id"]
         subject_id = args["subject_id"]
         date = args["date"]
@@ -561,7 +567,7 @@ class QuestionResources(Resource):
             "message": "Question added successfully",
             "question_id": new_question.id,
         }, 201
-        
+
     @jwt_auth_required
     @role_required(["admin"])
     def delete(self):
@@ -586,22 +592,31 @@ class UserDashboardResource(Resource):
     @role_required(["user"])
     def get(self):
         """
-        return all the quizzes from the time the user started
+        Return quizzes categorized into two parts: upcoming quizzes and past quizzes.
         """
+        current_date = datetime.now().date()
         quizzes = Quiz.query.order_by(Quiz.date_of_quiz.asc()).all()
-        quizzes_data = []
+        upcoming_quizzes = []
+        past_quizzes = []
+
         for quiz in quizzes:
-            quizzes_data.append(
-                {
-                    "id": quiz.id,
-                    "title": quiz.quiz_title,
-                    "date_of_quiz": quiz.date_of_quiz.isoformat(),
-                    "duration": quiz.time_duration,
-                    "chapter": quiz.chapter_id,
-                    "subject": quiz.subject_id,
-                }
-            )
-        return {"data": quizzes_data}, 200
+            quiz_data = {
+                "id": quiz.id,
+                "title": quiz.quiz_title,
+                "date_of_quiz": quiz.date_of_quiz.isoformat(),
+                "duration": quiz.time_duration,
+                "chapter": quiz.chapter_id,
+                "subject": quiz.subject_id,
+            }
+            if quiz.date_of_quiz >= current_date:
+                upcoming_quizzes.append(quiz_data)
+            else:
+                past_quizzes.append(quiz_data)
+
+        return {
+            "upcoming_quizzes": upcoming_quizzes,
+            "past_quizzes": past_quizzes,
+        }, 200
 
 
 class ScoresResource(Resource):
@@ -676,6 +691,7 @@ class TakeQuizResource(Resource):
             }
         }, 200
 
+
 class TakeResponseResource(Resource):
     @jwt_auth_required
     @role_required(["user"])
@@ -707,15 +723,13 @@ class TakeResponseResource(Resource):
 
             # Check for existing response
             existing_response = QuizResponse.query.filter_by(
-                quiz_id=quiz_id,
-                user_id=user_id,
-                question_id=question_id
+                quiz_id=quiz_id, user_id=user_id, question_id=question_id
             ).first()
 
             if existing_response:
                 # Update existing response
                 existing_response.selected_option = selected_option
-                existing_response.is_correct = (question.answer == selected_option)
+                existing_response.is_correct = question.answer == selected_option
                 existing_response.timestamp = datetime.now()
                 response_id = existing_response.id
             else:
@@ -726,7 +740,7 @@ class TakeResponseResource(Resource):
                     question_id=question_id,
                     selected_option=selected_option,
                     is_correct=(question.answer == selected_option),
-                    timestamp=datetime.now()
+                    timestamp=datetime.now(),
                 )
                 db.session.add(quiz_response)
                 response_id = quiz_response.id
@@ -736,13 +750,10 @@ class TakeResponseResource(Resource):
             return {
                 "message": "Response recorded successfully",
                 "quiz_response_id": response_id,
-                "status": "success"
+                "status": "success",
             }, 201
 
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error recording response: {str(e)}")
-            return {
-                "message": "Error recording response",
-                "error": str(e)
-            }, 500
+            return {"message": "Error recording response", "error": str(e)}, 500

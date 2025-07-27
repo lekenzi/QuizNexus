@@ -13,7 +13,6 @@ from app.config import Config
 from app.email import configure_mail
 from app.models import User, db
 from app.worker import configure_celery
-from app.api.SocketIO import socketio
 
 celery = None
 
@@ -51,7 +50,6 @@ def create_app():
     Migrate(app, db)
     JWTManager(app)
     CORS(app)
-    socketio.init_app(app, cors_allowed_origins="http://localhost:8080")
 
     global celery
     celery = configure_celery(app)  # Initialize Celery with the app

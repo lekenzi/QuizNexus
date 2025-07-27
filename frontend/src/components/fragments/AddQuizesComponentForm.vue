@@ -281,7 +281,7 @@ export default {
         const payload = {
           title: this.form.quiztitle,
           remarks: this.form.remarks,
-          timeduration: this.form.timeduration,
+          timeduration: this.form.timeduration * 60,
           date: this.form.date,
           subject_id: this.form.subject,
           chapter_id: this.form.chapter,

@@ -1,68 +1,45 @@
 import csv
 import io
 import smtplib
+import time
 from datetime import datetime, timedelta
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from app.celery_app import celery_app
+from flask import Flask
 from flask_mail import Message
-from app.models import Quiz, Score, User
 
+from app.celery_app import celery_app
+from app.config import Config
 from app.email import send_email, send_email_with_attachment
-from app.api.SocketIO import socketio
-
-
-
-@celery_app.task
-def check_and_start_exams():
-    """Check if there are any exams scheduled for today and start them"""
-    today = datetime.now().date()
-    quizzes = Quiz.query.filter(Quiz.date_of_quiz == today).all()
-
-    if not quizzes:
-        return "No exams scheduled for today"
-
-    for quiz in quizzes:
-        # Logic to start the quiz, e.g., notify users or prepare the quiz environment
-        print(f"Starting quiz: {quiz.title} scheduled for {today}")
-    
-    return f"Started {len(quizzes)} quizzes scheduled for today"
-
-
-
-
-
-
-
-
-
+from app.models import Quiz, Score, User, db
 
 @celery_app.task(bind=True)
 def send_daily_reminders(self):
     """Send daily quiz reminders to users"""
+    app = create_app_context()
+
     try:
-        users = User.query.all()
-        new_quizzes = Quiz.query.filter(
-            Quiz.date_of_quiz >= datetime.now().date()
-        ).all()
+        with app.app_context():
+            users = User.query.all()
+            new_quizzes = Quiz.query.filter(
+                Quiz.date_of_quiz >= datetime.now().date()
+            ).all()
 
-        for user in users:
-
-            recent_attempts = (
-                Score.query.filter_by(user_id=user.id)
-                .filter(
-                    Score.time_stamp_of_attempt >= datetime.now() - timedelta(days=1)
+            user_count = len(users)
+            for user in users:
+                recent_attempts = (
+                    Score.query.filter_by(user_id=user.id)
+                    .filter(Score.timestamp >= datetime.now() - timedelta(days=1))
+                    .count()
                 )
-                .count()
-            )
 
-            if recent_attempts == 0 and new_quizzes:
-                send_reminder_email.delay(user.id, len(new_quizzes))
+                if recent_attempts == 0 and new_quizzes:
+                    send_reminder_email.delay(user.id, len(new_quizzes))
 
-        return f"Sent reminders to {len(users)} users"
+        return f"Sent reminders to {user_count} users"
     except Exception as e:
         self.retry(countdown=60, max_retries=3)
 
@@ -195,3 +172,23 @@ def export_quiz_data_csv(user_id):
     )
 
     return f"CSV export sent to {user.username}"
+
+
+@celery_app.task
+def force_start_quiz(quiz_id):
+    """Force start a specific quiz countdown regardless of schedule"""
+    app = create_app_context()
+
+    with app.app_context():
+        quiz = Quiz.query.get(quiz_id)
+        if not quiz:
+            return f"Quiz with ID {quiz_id} not found"
+
+        print(
+            f"Force starting quiz: ID={quiz.id}, Title={quiz.quiz_title}, Duration={quiz.time_duration} minutes"
+        )
+
+        quiz.started = True
+        db.session.commit()
+
+    return start_exam_countdown(quiz_id)
