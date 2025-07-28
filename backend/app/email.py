@@ -12,7 +12,7 @@ from flask_mail import Mail, Message
 class EmailConfig:
     """Email configuration class"""
 
-    # Update to use MailHog default settings
+    
     MAIL_SERVER = "localhost"
     MAIL_PORT = 1025
     MAIL_USE_TLS = False
@@ -24,7 +24,7 @@ class EmailConfig:
 
 def configure_mail(app):
     """Configure Flask-Mail"""
-    # Configure for MailHog instead of Gmail
+    
     app.config["MAIL_SERVER"] = "localhost"
     app.config["MAIL_PORT"] = 1025
     app.config["MAIL_USE_TLS"] = False
@@ -39,7 +39,7 @@ def configure_mail(app):
 
 def send_email_with_attachment(to_email, subject, body, attachment_data, filename):
     """Send email with CSV attachment"""
-    # Configure for MailHog
+    
     smtp_server = "localhost"
     smtp_port = 1025
     smtp_user = "noreply@quiznexus.com"
@@ -60,9 +60,37 @@ def send_email_with_attachment(to_email, subject, body, attachment_data, filenam
 
     try:
         server = smtplib.SMTP(smtp_server, smtp_port)
-        # No need for TLS or authentication with MailHog
-        # server.starttls()
-        # server.login(smtp_user, smtp_password)
+        
+        
+        
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Email sending failed: {e}")
+        return False
+
+
+def send_email(to_email, subject, body, is_html=False):
+    """Send a simple email using SMTP"""
+    smtp_server = "localhost"
+    smtp_port = 1025
+    smtp_user = "noreply@quiznexus.com"
+    smtp_password = None
+
+    msg = MIMEMultipart()
+    msg["From"] = smtp_user
+    msg["To"] = to_email
+    msg["Subject"] = subject
+
+    
+    if is_html:
+        msg.attach(MIMEText(body, "html"))
+    else:
+        msg.attach(MIMEText(body, "plain"))
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
         server.send_message(msg)
         server.quit()
         return True

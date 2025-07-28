@@ -19,15 +19,17 @@
     </div>
     <div class="d-flex justify-content-between align-items-center mt-3">
       <ViewAndAddQuestionsModal :quiz="quizzes" />
-      <button class="btn btn-danger" @click="$emit('delete-quiz', quizzes)">
-        <i class="fas fa-trash-alt"></i> Delete Quiz
-      </button>
+      <EditQuizModal :quiz="quizzes" @quiz-updated="onQuizUpdated" />
+      <DeleteQuizModal :quiz="quizzes" @quiz-deleted="onQuizDeleted" />
     </div>
   </div>
 </template>
 
 <script>
 import ViewAndAddQuestionsModal from "@/components/fragments/ViewAndAddQuestionsModal.vue";
+import DeleteQuizModal from "@/components/fragments/DeleteQuizModal.vue";
+import EditQuizModal from "@/components/fragments/EditQuizModal.vue";
+
 export default {
   name: "QuizTableComponent",
   props: {
@@ -38,6 +40,17 @@ export default {
   },
   components: {
     ViewAndAddQuestionsModal,
+    DeleteQuizModal,
+    EditQuizModal,
+  },
+  methods: {
+    onQuizDeleted(data) {
+      this.$emit("quiz-deleted", data);
+    },
+
+    onQuizUpdated(data) {
+      this.$emit("quiz-updated", data);
+    },
   },
 };
 </script>

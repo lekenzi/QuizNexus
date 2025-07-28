@@ -14,7 +14,7 @@ def cache_key_generator(*args, **kwargs):
     return hashlib.md5(key_data.encode()).hexdigest()
 
 
-def cache_result(expiration=300):
+def cache_result(expiration=10):
     """Decorator to cache function results"""
 
     def decorator(func):

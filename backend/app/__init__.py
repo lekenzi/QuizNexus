@@ -1,6 +1,12 @@
 from datetime import datetime
 
 import yaml
+from flask import Flask, Response
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
+from werkzeug.security import generate_password_hash
+
 from app import worker
 from app.api import api
 from app.cache import redis_client
@@ -8,11 +14,6 @@ from app.config import Config
 from app.email import configure_mail
 from app.models import User, db
 from app.worker import configure_celery
-from flask import Flask, Response
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager
-from flask_migrate import Migrate
-from werkzeug.security import generate_password_hash
 
 celery = None
 
@@ -46,8 +47,12 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    
     db.init_app(app)
-    Migrate(app, db)
+
+    
+    migrate = Migrate(app, db)
+
     JWTManager(app)
     CORS(app)
 
@@ -64,9 +69,5 @@ def create_app():
     configure_mail(app)
 
     api.init_app(app)
-
-    @app.route("/swagger.yaml")
-    def openapi_yaml():
-        return Response(yaml.dump(api.__schema__), mimetype="application/yaml")
 
     return app

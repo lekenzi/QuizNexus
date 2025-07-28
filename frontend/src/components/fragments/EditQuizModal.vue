@@ -1,9 +1,9 @@
 <template>
   <div>
-    <button class="btn btn-primary" @click="showModal = true">
-      Add New Quiz
-    </button>
+    <!-- Edit Button -->
+    <button class="btn btn-warning" @click="openModal">Edit</button>
 
+    <!-- Modal -->
     <div
       v-if="showModal"
       class="modal fade show d-block"
@@ -14,24 +14,24 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">
-              <i class="fas fa-plus me-2"></i>Add New Quiz
+              <i class="fas fa-edit me-2"></i>Edit Quiz
             </h5>
             <button
               type="button"
               class="btn-close"
               @click="closeModal"
-              :disabled="isSubmitting"
+              :disabled="isUpdating"
             ></button>
           </div>
-          <form @submit.prevent="handleSubmit">
+          <form @submit.prevent="updateQuiz">
             <div class="modal-body">
               <div class="mb-3">
-                <label for="quiztitle" class="form-label">Quiz Title</label>
+                <label for="quizTitle" class="form-label">Quiz Title</label>
                 <input
                   type="text"
                   class="form-control"
-                  id="quiztitle"
-                  v-model="form.quiztitle"
+                  id="quizTitle"
+                  v-model="form.title"
                   required
                 />
               </div>
@@ -49,14 +49,14 @@
               <div class="row">
                 <div class="col-md-6">
                   <div class="mb-3">
-                    <label for="timeduration" class="form-label"
+                    <label for="duration" class="form-label"
                       >Duration (minutes)</label
                     >
                     <input
                       type="number"
                       class="form-control"
-                      id="timeduration"
-                      v-model="form.timeduration"
+                      id="duration"
+                      v-model="form.time_duration"
                       min="1"
                       required
                     />
@@ -77,11 +77,11 @@
               </div>
 
               <div class="mb-3">
-                <label for="time_of_day" class="form-label">Time</label>
+                <label for="timeOfDay" class="form-label">Time</label>
                 <input
                   type="time"
                   class="form-control"
-                  id="time_of_day"
+                  id="timeOfDay"
                   v-model="form.time_of_day"
                   required
                 />
@@ -94,7 +94,7 @@
                     <select
                       class="form-control"
                       id="subject"
-                      v-model="form.subject"
+                      v-model="form.subject_id"
                       @change="onSubjectChange"
                       required
                     >
@@ -115,13 +115,13 @@
                     <select
                       class="form-control"
                       id="chapter"
-                      v-model="form.chapter"
-                      :disabled="!form.subject || chapters.length === 0"
+                      v-model="form.chapter_id"
+                      :disabled="!form.subject_id || chapters.length === 0"
                       required
                     >
                       <option value="" disabled>
                         {{
-                          !form.subject
+                          !form.subject_id
                             ? "Select a subject first"
                             : chapters.length === 0
                             ? "Loading chapters..."
@@ -140,12 +140,12 @@
                 </div>
               </div>
 
-              <div v-if="submitError" class="alert alert-danger">
-                {{ submitError }}
+              <div v-if="updateError" class="alert alert-danger">
+                {{ updateError }}
               </div>
 
-              <div v-if="submitSuccess" class="alert alert-success">
-                {{ submitSuccess }}
+              <div v-if="updateSuccess" class="alert alert-success">
+                {{ updateSuccess }}
               </div>
             </div>
             <div class="modal-footer">
@@ -153,21 +153,21 @@
                 type="button"
                 class="btn btn-secondary"
                 @click="closeModal"
-                :disabled="isSubmitting"
+                :disabled="isUpdating"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 class="btn btn-primary"
-                :disabled="isSubmitting"
+                :disabled="isUpdating"
               >
                 <span
-                  v-if="isSubmitting"
+                  v-if="isUpdating"
                   class="spinner-border spinner-border-sm me-2"
                   role="status"
                 ></span>
-                {{ isSubmitting ? "Creating..." : "Create Quiz" }}
+                {{ isUpdating ? "Updating..." : "Update Quiz" }}
               </button>
             </div>
           </form>
@@ -179,169 +179,176 @@
 </template>
 
 <script>
-import { make_postrequest, make_getrequest } from "@/stores/appState";
+import { make_getrequest } from "@/stores/appState";
 
 export default {
-  name: "AddQuizesComponentForm",
+  name: "EditQuizModal",
   props: {
-    subject: {
-      type: String,
-      required: false,
+    quiz: {
+      type: Object,
+      required: true,
     },
   },
   data() {
     return {
       showModal: false,
       form: {
-        quiztitle: "",
+        id: null,
+        title: "",
         remarks: "",
-        timeduration: "",
+        time_duration: 0,
         date: "",
-        subject: "",
-        chapter: "",
         time_of_day: "",
+        subject_id: "",
+        chapter_id: "",
       },
       subjects: [],
       chapters: [],
-      isSubmitting: false,
-      submitError: null,
-      submitSuccess: null,
-      loading: {
-        subjects: false,
-        chapters: false,
-      },
+      isUpdating: false,
+      updateError: null,
+      updateSuccess: null,
     };
   },
   watch: {
     showModal(newValue) {
       if (newValue) {
+        this.initializeForm();
         this.fetchSubjects();
       } else {
         this.resetMessages();
       }
     },
-    "form.subject"(newSubjectId) {
+    "form.subject_id"(newSubjectId) {
       if (newSubjectId) {
         this.fetchChapters(newSubjectId);
       } else {
         this.chapters = [];
-        this.form.chapter = "";
+        this.form.chapter_id = "";
       }
     },
-  },
-  mounted() {
-    this.fetchSubjects();
   },
   methods: {
-    async fetchSubjects() {
-      this.loading.subjects = true;
-      try {
-        const response = await make_getrequest("/subjects");
-
-        if (response.subjects && Array.isArray(response.subjects)) {
-          this.subjects = response.subjects;
-        } else {
-          console.error("Unexpected response structure:", response);
-          this.subjects = [];
-        }
-      } catch (error) {
-        console.error("Failed to fetch subjects:", error);
-        this.subjects = [];
-      } finally {
-        this.loading.subjects = false;
-      }
-    },
-
-    async fetchChapters(subjectId) {
-      this.loading.chapters = true;
-      try {
-        const response = await make_getrequest(
-          `/chapters?subject_id=${subjectId}`
-        );
-
-        if (
-          response.data &&
-          response.data.chapters &&
-          Array.isArray(response.data.chapters)
-        ) {
-          this.chapters = response.data.chapters;
-        } else {
-          console.error("Unexpected chapters response structure:", response);
-          this.chapters = [];
-        }
-
-        this.form.chapter = "";
-      } catch (error) {
-        console.error("Failed to fetch chapters:", error);
-        this.chapters = [];
-        this.form.chapter = "";
-      } finally {
-        this.loading.chapters = false;
-      }
-    },
-
-    onSubjectChange() {
-      this.form.chapter = "";
+    openModal() {
+      this.showModal = true;
     },
 
     closeModal() {
-      if (!this.isSubmitting) {
+      if (!this.isUpdating) {
         this.showModal = false;
-        this.resetForm();
         this.resetMessages();
       }
     },
 
-    resetForm() {
+    initializeForm() {
       this.form = {
-        quiztitle: "",
-        remarks: "",
-        timeduration: "",
-        date: "",
-        subject: "",
-        chapter: "",
-        time_of_day: "",
+        id: this.quiz.quiz_id,
+        title: this.quiz.quiz_title || "",
+        remarks: this.quiz.remarks || "",
+        time_duration: this.quiz.time_duration || 0,
+        date: this.formatDateForInput(this.quiz.date_of_quiz),
+        time_of_day: this.formatTimeForInput(this.quiz.time_of_day),
+        subject_id: this.quiz.subject_id || "",
+        chapter_id: this.quiz.chapter_id || "",
       };
-      this.chapters = [];
     },
 
-    resetMessages() {
-      this.submitError = null;
-      this.submitSuccess = null;
+    formatDateForInput(dateString) {
+      if (!dateString) return "";
+      return dateString.split("T")[0];
     },
 
-    async handleSubmit() {
-      this.isSubmitting = true;
-      this.submitError = null;
-      this.submitSuccess = null;
+    formatTimeForInput(timeString) {
+      if (!timeString) return "";
+      return timeString.split(":").slice(0, 2).join(":");
+    },
+
+    async fetchSubjects() {
+      try {
+        const response = await make_getrequest("/subjects");
+        this.subjects = response.subjects || [];
+
+        if (this.form.subject_id) {
+          await this.fetchChapters(this.form.subject_id);
+        }
+      } catch (error) {
+        console.error("Failed to fetch subjects:", error);
+      }
+    },
+
+    async fetchChapters(subjectId) {
+      try {
+        const response = await make_getrequest(
+          `/chapters?subject_id=${subjectId}`
+        );
+        this.chapters = response.data?.chapters || [];
+      } catch (error) {
+        console.error("Failed to fetch chapters:", error);
+        this.chapters = [];
+      }
+    },
+
+    onSubjectChange() {
+      this.form.chapter_id = "";
+    },
+
+    async updateQuiz() {
+      this.isUpdating = true;
+      this.updateError = null;
+      this.updateSuccess = null;
 
       try {
         const payload = {
-          title: this.form.quiztitle,
+          id: this.form.id,
+          title: this.form.title,
           remarks: this.form.remarks,
-          timeduration: this.form.timeduration,
+          time_duration: parseInt(this.form.time_duration),
           date: this.form.date,
-          subject_id: this.form.subject,
-          chapter_id: this.form.chapter,
           time_of_day: this.form.time_of_day + ":00",
+          subject_id: this.form.subject_id,
+          chapter_id: this.form.chapter_id,
         };
 
-        const response = await make_postrequest("/quizzes", payload);
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${
+            this.$store?.state?.BASEURL || "http://localhost:5000/api"
+          }/quizzes`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          }
+        );
 
-        this.submitSuccess = response.message || "Quiz created successfully";
+        if (!response.ok) {
+          throw new Error("Update failed");
+        }
 
-        this.$emit("add", response);
-        this.$emit("refresh-quizzes");
+        const result = await response.json();
+        this.updateSuccess = result.message || "Quiz updated successfully";
+
+        this.$emit("quiz-updated", {
+          quiz: { ...this.quiz, ...payload },
+          message: this.updateSuccess,
+        });
 
         setTimeout(() => {
           this.closeModal();
         }, 1500);
       } catch (error) {
-        console.error("API call failed:", error);
-        this.submitError = "Failed to create quiz. Please try again.";
+        console.error("Failed to update quiz:", error);
+        this.updateError = "Failed to update quiz. Please try again.";
       } finally {
-        this.isSubmitting = false;
+        this.isUpdating = false;
       }
+    },
+
+    resetMessages() {
+      this.updateError = null;
+      this.updateSuccess = null;
     },
   },
 };

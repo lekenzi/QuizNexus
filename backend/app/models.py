@@ -21,6 +21,9 @@ class User(UserMixin, db.Model):
     date_of_birth = db.Column(db.DateTime)
     role = db.Column(db.String(20), default="user")
     scores = db.relationship("Score", backref="user", lazy="dynamic")
+    preferences_id = db.Column(
+        db.Integer, db.ForeignKey("user_preferences.id"), nullable=True
+    )
 
     def __repr__(self):
         return "<User {}>".format(self.username)
@@ -121,14 +124,27 @@ class QuizResponse(db.Model):
         return "<QuizResponse {}>".format(self.id)
 
 
-class QuizAttempt(db.Model):
+class UserPreference(db.Model):
+    __tablename__ = "user_preferences"
+
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"))
-    score = db.Column(db.Integer)
-    total_questions = db.Column(db.Integer)
-    correct_answers = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    reminder_time = db.Column(
+        db.Time, default=datetime.strptime("18:00", "%H:%M").time()
+    )
+    email_reminders = db.Column(db.Boolean, default=True)
+    monthly_report = db.Column(db.Boolean, default=True)
+    last_visit = db.Column(db.DateTime, default=lambda: datetime.now().astimezone())
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now().astimezone())
+    updated_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now().astimezone(),
+        onupdate=lambda: datetime.now().astimezone(),
+    )
+
+    user = db.relationship(
+        "User", backref=db.backref("preferences", uselist=False), foreign_keys=[user_id]
+    )
 
     def __repr__(self):
-        return "<QuizAttempt {}>".format(self.id)
+        return "<UserPreference {}>".format(self.id)

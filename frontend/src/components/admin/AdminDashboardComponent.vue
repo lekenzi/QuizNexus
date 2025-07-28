@@ -142,6 +142,6 @@ export default {
   transition: transform 0.3s ease;
 }
 .card:hover {
-  transform: translateY(-5px);
+  /* transform: translateY(-5px); */
 }
 </style>

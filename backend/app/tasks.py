@@ -1,10 +1,12 @@
 import csv
 import io
-import logging  # Add logging import if not already present
+import json
+import logging
+from calendar import monthrange
 from datetime import datetime, timedelta
 
 from app.celery_app import celery_app
-from app.email import send_email_with_attachment
+from app.email import send_email, send_email_with_attachment
 from app.models import *
 
 
@@ -149,7 +151,7 @@ def calculate_ended_quiz_scores():
     with app.app_context():
 
         now = datetime.now()
-        one_hour_ago = now - timedelta(hours=10)
+        one_hour_ago = now - timedelta(hours=1)
 
         print(f"Running score calculation at {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -336,3 +338,731 @@ def calculate_ended_quiz_scores():
             "scores": results,
             "verification": verification_report,
         }
+
+
+@celery_app.task
+def send_daily_reminders():
+    """Send daily reminders to users about new quizzes and inactivity"""
+    app = create_app_context()
+
+    with app.app_context():
+        now = datetime.now()
+        current_time = now.time()
+        today = now.date()
+        yesterday = today - timedelta(seconds=1)  
+
+        logging.info(
+            f"Running daily reminders check at {now.strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+
+        users = User.query.filter_by(role="user").all()
+
+        reminder_stats = {
+            "total_users_checked": len(users),
+            "users_due_for_reminders": 0,
+            "reminders_sent": 0,
+            "inactive_users": 0,
+            "new_quiz_alerts": 0,
+            "errors": [],
+        }
+
+        
+        new_quizzes = Quiz.query.filter(Quiz.date_of_quiz >= yesterday).all()
+        logging.info(f"Found {len(new_quizzes)} new quizzes since yesterday")
+
+        
+        week_ahead = today + timedelta(days=7)
+        upcoming_quizzes = Quiz.query.filter(
+            Quiz.date_of_quiz >= today,
+            Quiz.date_of_quiz <= week_ahead,
+        ).all()
+        logging.info(f"Found {len(upcoming_quizzes)} upcoming quizzes")
+
+        for user in users:
+            try:
+                user_pref = user.preferences
+                if not user_pref:
+                    user_pref = UserPreference(
+                        user_id=user.id,
+                        email_reminders=True,
+                        monthly_report=True,
+                        last_visit=now,
+                        reminder_time=datetime.strptime("18:00", "%H:%M").time(),
+                    )
+                    db.session.add(user_pref)
+                    db.session.commit()
+                    db.session.refresh(user)
+                    user_pref = user.preferences
+
+                if not user_pref.email_reminders:
+                    logging.info(f"User {user.username} has email reminders disabled")
+                    continue
+
+                user_reminder_time = user_pref.reminder_time
+                if not user_reminder_time:
+                    user_reminder_time = datetime.strptime("18:00", "%H:%M").time()
+
+                current_minutes = current_time.hour * 60 + current_time.minute
+                reminder_minutes = (
+                    user_reminder_time.hour * 60 + user_reminder_time.minute
+                )
+
+                
+                if abs(current_minutes - reminder_minutes) > 0:
+                    continue
+
+                reminder_stats["users_due_for_reminders"] += 1
+                logging.info(f"Processing reminder for user {user.username} at {user_reminder_time.strftime('%H:%M')}")
+
+                
+                
+
+                should_send_reminder = False
+                reminder_reasons = []
+
+                
+                if user_pref.last_visit:
+                    days_since_visit = (now - user_pref.last_visit).days
+                    logging.info(f"User {user.username} last visited {days_since_visit} days ago")
+                    if days_since_visit >= 1:  
+                        should_send_reminder = True
+                        reminder_reasons.append(
+                            f"You haven't visited in {days_since_visit} days"
+                        )
+                        reminder_stats["inactive_users"] += 1
+                else:
+                    
+                    should_send_reminder = True
+                    reminder_reasons.append("Welcome back! Check out what's new")
+                    reminder_stats["inactive_users"] += 1
+
+                
+                if new_quizzes:
+                    should_send_reminder = True
+                    reminder_reasons.append(
+                        f"{len(new_quizzes)} new quiz(es) have been added"
+                    )
+                    reminder_stats["new_quiz_alerts"] += 1
+
+                
+                user_attempted_quizzes = (
+                    db.session.query(Score.quiz_id).filter_by(user_id=user.id).all()
+                )
+                attempted_quiz_ids = [q[0] for q in user_attempted_quizzes]
+
+                pending_quizzes = [
+                    q for q in upcoming_quizzes if q.id not in attempted_quiz_ids
+                ]
+
+                if pending_quizzes:
+                    should_send_reminder = True
+                    reminder_reasons.append(
+                        f"{len(pending_quizzes)} upcoming quiz(es) you haven't attempted yet"
+                    )
+
+                logging.info(f"Should send reminder to {user.username}: {should_send_reminder}, reasons: {reminder_reasons}")
+
+                if should_send_reminder:
+                    
+                    logging.info(f"Sending reminder email to {user.username}")
+                    email_sent = send_quiz_reminder_email(
+                        user.username,
+                        user.full_name,
+                        reminder_reasons,
+                        new_quizzes,
+                        pending_quizzes,
+                    )
+
+                    if email_sent:
+                        reminder_stats["reminders_sent"] += 1
+                        logging.info(
+                            f"Reminder sent successfully to {user.username} at their preferred time {user_reminder_time.strftime('%H:%M')}"
+                        )
+
+                        
+                        user_pref.updated_at = now
+                        db.session.commit()
+                    else:
+                        error_msg = f"Failed to send reminder to {user.username}"
+                        logging.error(error_msg)
+                        reminder_stats["errors"].append(error_msg)
+                else:
+                    logging.info(f"No reminder needed for {user.username}")
+
+            except Exception as e:
+                error_msg = f"Error processing reminder for user {user.id}: {str(e)}"
+                logging.error(error_msg)
+                reminder_stats["errors"].append(error_msg)
+
+        if reminder_stats["users_due_for_reminders"] > 0:
+            logging.info(f"Daily reminders completed: {reminder_stats}")
+
+        return reminder_stats
+
+
+@celery_app.task
+def send_monthly_reports():
+    """Send monthly activity reports to users"""
+    app = create_app_context()
+
+    with app.app_context():
+        now = datetime.now()
+
+        if now.month == 1:
+            prev_month = 12
+            prev_year = now.year - 1
+        else:
+            prev_month = now.month - 1
+            prev_year = now.year
+
+        first_day = datetime(prev_year, prev_month, 1)
+        last_day_num = monthrange(prev_year, prev_month)[1]
+        last_day = datetime(prev_year, prev_month, last_day_num, 23, 59, 59)
+
+        logging.info(f"Generating monthly reports for {first_day.strftime('%B %Y')}")
+
+        users_with_reports = []
+        all_users = User.query.filter_by(role="user").all()
+
+        for user in all_users:
+
+            if user.preferences and user.preferences.monthly_report:
+                users_with_reports.append(user)
+
+        report_stats = {
+            "month": first_day.strftime("%B %Y"),
+            "total_users": len(users_with_reports),
+            "reports_sent": 0,
+            "errors": [],
+        }
+
+        for user in users_with_reports:
+            try:
+
+                monthly_scores = Score.query.filter(
+                    Score.user_id == user.id,
+                    Score.timestamp >= first_day,
+                    Score.timestamp <= last_day,
+                ).all()
+
+                if not monthly_scores:
+
+                    logging.info(
+                        f"No activity for user {user.username} in {first_day.strftime('%B %Y')}"
+                    )
+                    continue
+
+                quiz_ids = [score.quiz_id for score in monthly_scores]
+                quizzes = Quiz.query.filter(Quiz.id.in_(quiz_ids)).all()
+                quiz_dict = {q.id: q for q in quizzes}
+
+                total_quizzes = len(monthly_scores)
+                total_score = sum(score.score for score in monthly_scores)
+                average_score = total_score / total_quizzes if total_quizzes > 0 else 0
+
+                quiz_rankings = []
+                for score in monthly_scores:
+                    all_scores_for_quiz = (
+                        Score.query.filter_by(quiz_id=score.quiz_id)
+                        .order_by(Score.score.desc())
+                        .all()
+                    )
+                    user_rank = next(
+                        (
+                            i + 1
+                            for i, s in enumerate(all_scores_for_quiz)
+                            if s.user_id == user.id
+                        ),
+                        None,
+                    )
+                    total_participants = len(all_scores_for_quiz)
+
+                    quiz_rankings.append(
+                        {
+                            "quiz": quiz_dict.get(score.quiz_id),
+                            "score": score.score,
+                            "rank": user_rank,
+                            "total_participants": total_participants,
+                            "date": score.timestamp,
+                        }
+                    )
+
+                report_data = {
+                    "user_name": user.full_name,
+                    "month": first_day.strftime("%B %Y"),
+                    "total_quizzes": total_quizzes,
+                    "total_score": total_score,
+                    "average_score": average_score,
+                    "quiz_details": quiz_rankings,
+                    "best_score": max(score.score for score in monthly_scores),
+                    "improvement_trend": calculate_improvement_trend(
+                        user.id, first_day, last_day
+                    ),
+                }
+
+                email_sent = send_monthly_report_email(user.username, report_data)
+
+                if email_sent:
+                    report_stats["reports_sent"] += 1
+                    logging.info(f"Monthly report sent to {user.username}")
+                else:
+                    report_stats["errors"].append(
+                        f"Failed to send report to {user.username}"
+                    )
+
+            except Exception as e:
+                error_msg = f"Error generating report for user {user.id}: {str(e)}"
+                logging.error(error_msg)
+                report_stats["errors"].append(error_msg)
+
+        logging.info(f"Monthly reports completed: {report_stats}")
+        return report_stats
+
+
+@celery_app.task
+def test_monthly_reports():
+    """Test task to send monthly reports immediately for current month (for testing)"""
+    app = create_app_context()
+
+    with app.app_context():
+        now = datetime.now()
+        
+        # Use current month instead of previous month for testing
+        current_month = now.month
+        current_year = now.year
+
+        # Get date range for current month (for testing with recent data)
+        first_day = datetime(current_year, current_month, 1)
+        last_day_num = monthrange(current_year, current_month)[1]
+        last_day = datetime(current_year, current_month, last_day_num, 23, 59, 59)
+
+        logging.info(f"TEST: Generating monthly reports for {first_day.strftime('%B %Y')} (current month)")
+
+        users_with_reports = []
+        all_users = User.query.filter_by(role="user").all()
+
+        for user in all_users:
+            # For testing, send to all users regardless of preferences
+            users_with_reports.append(user)
+
+        report_stats = {
+            "month": first_day.strftime("%B %Y"),
+            "total_users": len(users_with_reports),
+            "reports_sent": 0,
+            "errors": [],
+            "test_mode": True
+        }
+
+        logging.info(f"TEST: Found {len(users_with_reports)} users for testing")
+
+        for user in users_with_reports:
+            try:
+                # Get user's scores for the current month (more likely to have data)
+                monthly_scores = Score.query.filter(
+                    Score.user_id == user.id,
+                    Score.timestamp >= first_day,
+                    Score.timestamp <= last_day,
+                ).all()
+
+                if not monthly_scores:
+                    # For testing, create a mock report even with no activity
+                    logging.info(f"TEST: No activity for user {user.username}, creating mock report")
+                    
+                    report_data = {
+                        "user_name": user.full_name,
+                        "month": first_day.strftime("%B %Y"),
+                        "total_quizzes": 0,
+                        "total_score": 0,
+                        "average_score": 0,
+                        "quiz_details": [],
+                        "best_score": 0,
+                        "improvement_trend": "insufficient_data",
+                        "test_mode": True
+                    }
+                    
+                    # Send test report
+                    email_sent = send_test_monthly_report_email(user.username, report_data)
+                    
+                    if email_sent:
+                        report_stats["reports_sent"] += 1
+                        logging.info(f"TEST: Mock monthly report sent to {user.username}")
+                    else:
+                        report_stats["errors"].append(f"Failed to send test report to {user.username}")
+                    
+                    continue
+
+                # Process actual data if available
+                quiz_ids = [score.quiz_id for score in monthly_scores]
+                quizzes = Quiz.query.filter(Quiz.id.in_(quiz_ids)).all()
+                quiz_dict = {q.id: q for q in quizzes}
+
+                total_quizzes = len(monthly_scores)
+                total_score = sum(score.score for score in monthly_scores)
+                average_score = total_score / total_quizzes if total_quizzes > 0 else 0
+
+                quiz_rankings = []
+                for score in monthly_scores:
+                    all_scores_for_quiz = (
+                        Score.query.filter_by(quiz_id=score.quiz_id)
+                        .order_by(Score.score.desc())
+                        .all()
+                    )
+                    user_rank = next(
+                        (
+                            i + 1
+                            for i, s in enumerate(all_scores_for_quiz)
+                            if s.user_id == user.id
+                        ),
+                        None,
+                    )
+                    total_participants = len(all_scores_for_quiz)
+
+                    quiz_rankings.append(
+                        {
+                            "quiz": quiz_dict.get(score.quiz_id),
+                            "score": score.score,
+                            "rank": user_rank,
+                            "total_participants": total_participants,
+                            "date": score.timestamp,
+                        }
+                    )
+
+                report_data = {
+                    "user_name": user.full_name,
+                    "month": first_day.strftime("%B %Y"),
+                    "total_quizzes": total_quizzes,
+                    "total_score": total_score,
+                    "average_score": average_score,
+                    "quiz_details": quiz_rankings,
+                    "best_score": max(score.score for score in monthly_scores),
+                    "improvement_trend": calculate_improvement_trend(
+                        user.id, first_day, last_day
+                    ),
+                    "test_mode": True
+                }
+
+                email_sent = send_monthly_report_email(user.username, report_data)
+
+                if email_sent:
+                    report_stats["reports_sent"] += 1
+                    logging.info(f"TEST: Monthly report sent to {user.username}")
+                else:
+                    report_stats["errors"].append(
+                        f"Failed to send report to {user.username}"
+                    )
+
+            except Exception as e:
+                error_msg = f"Error generating test report for user {user.id}: {str(e)}"
+                logging.error(error_msg)
+                report_stats["errors"].append(error_msg)
+
+        logging.info(f"TEST: Monthly reports completed: {report_stats}")
+        return report_stats
+
+
+def calculate_improvement_trend(user_id, start_date, end_date):
+    """Calculate if user is improving over the month"""
+    scores = (
+        Score.query.filter(
+            Score.user_id == user_id,
+            Score.timestamp >= start_date,
+            Score.timestamp <= end_date,
+        )
+        .order_by(Score.timestamp.asc())
+        .all()
+    )
+
+    if len(scores) < 2:
+        return "insufficient_data"
+
+    mid_point = len(scores) // 2
+    first_half_avg = sum(s.score for s in scores[:mid_point]) / mid_point
+    second_half_avg = sum(s.score for s in scores[mid_point:]) / (
+        len(scores) - mid_point
+    )
+
+    if second_half_avg > first_half_avg + 5:
+        return "improving"
+    elif second_half_avg < first_half_avg - 5:
+        return "declining"
+    else:
+        return "stable"
+
+
+def send_quiz_reminder_email(email, user_name, reasons, new_quizzes, pending_quizzes):
+    """Send quiz reminder email to user"""
+    subject = "🎯 QuizNexus Daily Reminder - Don't Miss Out!"
+
+    html_body = f"""
+    <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }}
+                .container {{ max-width: 600px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }}
+                .content {{ padding: 30px; }}
+                .reason {{ background-color: #f8f9fa; padding: 15px; margin: 10px 0; border-left: 4px solid #667eea; border-radius: 5px; }}
+                .quiz-list {{ background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 15px 0; }}
+                .quiz-item {{ background-color: white; padding: 10px; margin: 5px 0; border-radius: 3px; border-left: 3px solid #2196f3; }}
+                .button {{ display: inline-block; background-color: #667eea; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 15px 5px; }}
+                .footer {{ background-color: #f8f9fa; padding: 20px; text-align: center; color: #666; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>📚 QuizNexus Reminder</h1>
+                    <p>Stay on track with your learning journey!</p>
+                </div>
+                <div class="content">
+                    <h2>Hi {user_name}! 👋</h2>
+                    <p>We wanted to remind you about some exciting opportunities on QuizNexus:</p>
+                    
+                    {''.join(f'<div class="reason">📌 {reason}</div>' for reason in reasons)}
+                    
+                    {f'''
+                    <h3>🆕 New Quizzes Added:</h3>
+                    <div class="quiz-list">
+                        {''.join(f'<div class="quiz-item"><strong>{quiz.quiz_title}</strong><br><small>📅 Scheduled for: {quiz.date_of_quiz.strftime("%B %d, %Y")}</small></div>' for quiz in new_quizzes)}
+                    </div>
+                    ''' if new_quizzes else ''}
+                    
+                    {f'''
+                    <h3>⏰ Upcoming Quizzes You Haven't Attempted:</h3>
+                    <div class="quiz-list">
+                        {''.join(f'<div class="quiz-item"><strong>{quiz.quiz_title}</strong><br><small>📅 Date: {quiz.date_of_quiz.strftime("%B %d, %Y")} | ⏱️ Duration: {quiz.time_duration} minutes</small></div>' for quiz in pending_quizzes)}
+                    </div>
+                    ''' if pending_quizzes else ''}
+                    
+                    <p>Don't let these opportunities slip away! Every quiz is a step towards improving your knowledge and skills.</p>
+                    
+                    <div style="text-align: center;">
+                        <a href="http://localhost:3000/dashboard" class="button">🚀 Visit Dashboard</a>
+                        <a href="http://localhost:3000/quizzes" class="button">📝 Browse Quizzes</a>
+                    </div>
+                </div>
+                <div class="footer">
+                    <p>💡 <strong>Tip:</strong> Regular practice leads to better results!</p>
+                    <p><small>You can manage your reminder preferences in your account settings.</small></p>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+
+    return send_email(email, subject, html_body, is_html=True)
+
+
+def send_monthly_report_email(email, report_data):
+    """Send monthly activity report email"""
+    subject = f"📊 Your {report_data['month']} QuizNexus Activity Report"
+
+    avg_score = report_data["average_score"]
+    if avg_score >= 90:
+        performance_badge = "🏆 Excellent"
+        badge_color = "#ffd700"
+    elif avg_score >= 80:
+        performance_badge = "🥈 Great"
+        badge_color = "#c0c0c0"
+    elif avg_score >= 70:
+        performance_badge = "🥉 Good"
+        badge_color = "#cd7f32"
+    else:
+        performance_badge = "📈 Keep Improving"
+        badge_color = "#87ceeb"
+
+    trend_emoji = {
+        "improving": "📈 Improving",
+        "declining": "📉 Needs Focus",
+        "stable": "📊 Consistent",
+        "insufficient_data": "📋 Getting Started",
+    }
+
+    html_body = f"""
+    <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }}
+                .container {{ max-width: 700px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }}
+                .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; padding: 20px; }}
+                .stat-card {{ background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e9ecef; }}
+                .stat-value {{ font-size: 2em; font-weight: bold; color: #667eea; }}
+                .stat-label {{ color: #6c757d; margin-top: 5px; }}
+                .performance-badge {{ display: inline-block; background-color: {badge_color}; color: black; padding: 8px 15px; border-radius: 20px; font-weight: bold; margin: 10px; }}
+                .quiz-table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                .quiz-table th, .quiz-table td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
+                .quiz-table th {{ background-color: #f8f9fa; font-weight: bold; }}
+                .rank-good {{ color: #28a745; font-weight: bold; }}
+                .rank-average {{ color: #ffc107; font-weight: bold; }}
+                .rank-poor {{ color: #dc3545; font-weight: bold; }}
+                .content {{ padding: 30px; }}
+                .footer {{ background-color: #f8f9fa; padding: 20px; text-align: center; color: #666; }}
+                .trend {{ padding: 15px; background-color: #e3f2fd; border-radius: 5px; margin: 15px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>📊 Monthly Activity Report</h1>
+                    <h2>{report_data['month']}</h2>
+                    <p>Hi {report_data['user_name']}! Here's your learning summary</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{report_data['total_quizzes']}</div>
+                        <div class="stat-label">Quizzes Taken</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{report_data['average_score']:.1f}%</div>
+                        <div class="stat-label">Average Score</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{report_data['best_score']}%</div>
+                        <div class="stat-label">Best Score</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{report_data['total_score']}</div>
+                        <div class="stat-label">Total Points</div>
+                    </div>
+                </div>
+                
+                <div class="content">
+                    <div style="text-align: center;">
+                        <div class="performance-badge">{performance_badge}</div>
+                    </div>
+                    
+                    <div class="trend">
+                        <strong>📈 Learning Trend:</strong> {trend_emoji.get(report_data['improvement_trend'], '📋 Getting Started')}
+                    </div>
+                    
+                    <h3>📝 Quiz Performance Details</h3>
+                    <table class="quiz-table">
+                        <thead>
+                            <tr>
+                                <th>Quiz</th>
+                                <th>Score</th>
+                                <th>Rank</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {''.join(f'''
+                            <tr>
+                                <td>{detail["quiz"].quiz_title if detail["quiz"] else "Unknown Quiz"}</td>
+                                <td>{detail["score"]}%</td>
+                                <td class="{'rank-good' if detail['rank'] <= detail['total_participants']//3 else 'rank-average' if detail['rank'] <= 2*detail['total_participants']//3 else 'rank-poor'}">
+                                    #{detail["rank"]} of {detail["total_participants"]}
+                                </td>
+                                <td>{detail["date"].strftime("%b %d")}</td>
+                            </tr>
+                            ''' for detail in report_data['quiz_details'])}
+                        </tbody>
+                    </table>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                        <h4>💡 Insights & Recommendations:</h4>
+                        <ul>
+                            {f'<li>🎉 Excellent work! You scored above 90% average. Keep it up!</li>' if avg_score >= 90 else ''}
+                            {f'<li>📚 Try to attempt more quizzes to improve your ranking</li>' if report_data['total_quizzes'] < 5 else ''}
+                            {f'<li>🎯 Focus on consistency - your performance is trending upward!</li>' if report_data['improvement_trend'] == 'improving' else ''}
+                            {f'<li>💪 Challenge yourself with more difficult topics</li>' if avg_score >= 80 else ''}
+                            {f'<li>🔄 Review topics where you scored below 70% for better understanding</li>' if any(d['score'] < 70 for d in report_data['quiz_details']) else ''}
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <p>🚀 <strong>Ready for {datetime.now().strftime('%B')}?</strong> New challenges await!</p>
+                    <p><small>Keep learning, keep growing! 🌱</small></p>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+
+    return send_email(email, subject, html_body, is_html=True)
+
+
+def send_test_monthly_report_email(email, report_data):
+    """Send a test monthly activity report email with mock data"""
+    subject = f"🧪 TEST: Your {report_data['month']} QuizNexus Activity Report"
+
+    html_body = f"""
+    <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }}
+                .container {{ max-width: 700px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 30px; text-align: center; }}
+                .test-banner {{ background-color: #ff4757; color: white; padding: 10px; text-align: center; font-weight: bold; }}
+                .content {{ padding: 30px; }}
+                .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; padding: 20px; }}
+                .stat-card {{ background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border: 2px solid #e9ecef; }}
+                .stat-value {{ font-size: 2em; font-weight: bold; color: #ff6b6b; }}
+                .stat-label {{ color: #6c757d; margin-top: 5px; }}
+                .footer {{ background-color: #f8f9fa; padding: 20px; text-align: center; color: #666; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="test-banner">
+                    🧪 THIS IS A TEST EMAIL - Monthly Report Feature Test
+                </div>
+                <div class="header">
+                    <h1>📊 Monthly Activity Report (TEST)</h1>
+                    <h2>{report_data['month']}</h2>
+                    <p>Hi {report_data['user_name']}! This is a test of the monthly report feature</p>
+                </div>
+                
+                <div class="content">
+                    {f'''
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">{report_data['total_quizzes']}</div>
+                            <div class="stat-label">Quizzes Taken</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">{report_data['average_score']:.1f}%</div>
+                            <div class="stat-label">Average Score</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">{report_data['best_score']}%</div>
+                            <div class="stat-label">Best Score</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">{report_data['total_score']}</div>
+                            <div class="stat-label">Total Points</div>
+                        </div>
+                    </div>
+                    ''' if report_data['total_quizzes'] > 0 else '''
+                    <div style="text-align: center; padding: 40px; background-color: #f8f9fa; margin: 20px 0; border-radius: 10px;">
+                        <h3>📚 No Quiz Activity This Month</h3>
+                        <p>This is a test email. In a real report, this would show your quiz performance data.</p>
+                        <p><strong>This month:</strong> No quizzes were taken</p>
+                        <p><strong>Recommendation:</strong> Try taking a quiz to see how the report looks with real data!</p>
+                    </div>
+                    '''}
+                    
+                    <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 20px; margin: 20px 0;">
+                        <h4>🧪 Test Information:</h4>
+                        <ul>
+                            <li>This is a test of the monthly report email system</li>
+                            <li>Real reports will be sent on the 1st of each month</li>
+                            <li>The report includes your quiz performance, rankings, and personalized insights</li>
+                            <li>You can manage your email preferences in your account settings</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <p>🚀 <strong>Test completed successfully!</strong> The monthly report system is working.</p>
+                    <p><small>This was a test email from QuizNexus 🌱</small></p>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+
+    return send_email(email, subject, html_body, is_html=True)

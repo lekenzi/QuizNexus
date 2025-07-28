@@ -1,17 +1,18 @@
 import os
 from datetime import datetime, timedelta
 
+from flask import request, send_file
+from flask_restful import Resource
+
 from app.cache import CacheManager, cache_result
 from app.middleware import jwt_auth_required, role_required
 from app.models import Quiz, Score, User, db
 from app.tasks import generate_user_stats_csv
-from flask import request, send_file
-from flask_restx import Resource
 
 
 class CachedUserStats:
     @staticmethod
-    @cache_result(expiration=600)
+    @cache_result()
     def get_user_stats(user_id):
         """Get cached statistics for a user"""
 
@@ -30,7 +31,7 @@ class CachedUserStats:
 class AdminDashboardResource(Resource):
     @jwt_auth_required
     @role_required(["admin"])
-    @cache_result(expiration=300)
+    @cache_result()
     def get(self):
         """Get admin dashboard statistics"""
 

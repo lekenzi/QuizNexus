@@ -120,6 +120,15 @@
                 My Stats
               </router-link>
             </li>
+            <li class="nav-item">
+              <router-link
+                to="/mypreferences"
+                class="nav-link"
+                :class="{ active: isActive('/mypreferences') }"
+              >
+                My Preferences
+              </router-link>
+            </li>
             <li class="nav-item danger-bg">
               <a href="" class="nav-link" @click.prevent="logout_user">
                 Logout

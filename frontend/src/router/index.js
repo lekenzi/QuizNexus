@@ -15,6 +15,7 @@ import MyStatsView from "@/components/users/MyStatsView.vue";
 import AdminDashboardComponent from "@/components/admin/AdminDashboardComponent.vue";
 import AdminUsersComponent from "@/components/admin/AdminUsersComponent.vue";
 import AdminExportComponent from "@/components/admin/AdminExportComponent.vue";
+import UserPreference from "@/components/users/UserPreference.vue";
 const routes = [
   {
     path: "/login",
@@ -127,6 +128,11 @@ const routes = [
       requiresAuth: true,
       requiresRole: "user",
     },
+  },
+  {
+    path: "/mypreferences",
+    name: "mypreferences",
+    component: UserPreference,
   },
   {
     path: "/admin/dashboard",

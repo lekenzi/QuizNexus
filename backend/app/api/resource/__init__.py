@@ -5,28 +5,21 @@ import time
 from datetime import datetime, timedelta, timezone
 from operator import ge
 
-from app.api.validators import (
-    UserLoginParser,
-    UserRegisterParser,
-    add_chapter_parser,
-    add_quiz_parser,
-    add_subject_parser,
-    checkTokenParser,
-    questions_add_parser,
-    take_response_parser,
-)
+import jwt
+from flask import make_response, request
+from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
+                                jwt_required)
+from flask_restful import Resource
+from werkzeug.security import generate_password_hash
+
+from app.api.validators import (UserLoginParser, UserRegisterParser,
+                                add_chapter_parser, add_quiz_parser,
+                                add_subject_parser, checkTokenParser,
+                                questions_add_parser, take_response_parser)
 from app.cache import CacheManager, cache_result, invalidate_cache
 from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
-from app.models import Chapter, Question, Quiz, QuizResponse, Score, Subject, User, db
-from flask import make_response, request
-from flask_jwt_extended import (
-    create_access_token,
-    get_jwt,
-    get_jwt_identity,
-    jwt_required,
-)
-from flask_restx import Resource
-from werkzeug.security import generate_password_hash
+from app.models import (Chapter, Question, Quiz, QuizResponse, Score, Subject,
+                        User, UserPreference, db)
 
 
 class CheckTokenValidResource(Resource):
@@ -34,6 +27,20 @@ class CheckTokenValidResource(Resource):
     def post(self):
         args = checkTokenParser.parse_args()
         jwt_claims = get_jwt()
+
+        user = User.query.get(get_jwt_identity())
+        if not user:
+            return {"message": "User not found"}, 404
+
+        user_preferences = UserPreference.query.filter_by(user_id=user.id).first()
+        if user_preferences:
+            user_preferences.last_visit = datetime.now().astimezone()
+            db.session.commit()
+        else:
+            new_preferences = UserPreference(user_id=user.id)
+            new_preferences.last_visit = datetime.now().astimezone()
+            db.session.add(new_preferences)
+            db.session.commit()
 
         return {"message": "Token is valid", "claims": jwt_claims}, 200
 
@@ -71,7 +78,16 @@ class UserLoginResource(Resource):
                 access_token = create_access_token(
                     identity=str(user.id), additional_claims={"role": user.role}
                 )
-
+        
+        user_preferences = UserPreference.query.filter_by(user_id=user.id).first()
+        if user_preferences:
+            user_preferences.last_visit = datetime.now().astimezone()
+            db.session.commit()
+        else:
+            new_preferences = UserPreference(user_id=user.id)
+            new_preferences.last_visit = datetime.now().astimezone()
+            db.session.add(new_preferences)
+            db.session.commit()
         return make_response(
             {
                 "message": "Login successful",
@@ -163,7 +179,7 @@ class UserLogoutResource(Resource):
 class SubjectResources(Resource):
     @jwt_auth_required
     @optional_jwt_auth
-    @cache_result(expiration=600)
+    @cache_result()
     def get(self):
         subjects = Subject.query.all()
         subjects_data = []
@@ -281,7 +297,7 @@ class TestPostResource(Resource):
 
 class ChapterResources(Resource):
     @jwt_auth_required
-    @cache_result(expiration=300)
+    @cache_result()
     def get(self):
         subject_id = request.args.get("subject_id", type=int)
         if not subject_id:
@@ -374,7 +390,7 @@ class ChapterResources(Resource):
 class QuizResources(Resource):
     @jwt_auth_required
     @role_required(["admin"])
-    @cache_result(expiration=180)
+    @cache_result()
     def get(self):
         """
         Return quizzes based on subject_id. If subject_id is 9999, return all quizzes.
@@ -421,28 +437,6 @@ class QuizResources(Resource):
     def post(self):
         """
         Create a new quiz with the following JSON structure:
-            {title: 'hello', remarks: 'jhvjhv', timeduration: '1', date: '2025-07-15', subject_id: 2, …}
-            chapter_id
-            :
-            2
-            date
-            :
-            "2025-07-15"
-            time_of_day
-            :
-            "12:00:00"
-            remarks
-            :
-            "jhvjhv"
-            subject_id
-            :
-            2
-            timeduration
-            :
-            "1"
-            title
-            :
-            "hello"
         """
         args = add_quiz_parser.parse_args()
 
@@ -504,6 +498,9 @@ class QuizResources(Resource):
         Delete a quiz by its ID.
         Expects a JSON body with the quiz_id to delete.
         """
+        if not request.is_json:
+            return {"message": "Request must be JSON"}, 400
+
         args = request.get_json()
         quiz_id = args.get("quiz_id")
 
@@ -518,6 +515,57 @@ class QuizResources(Resource):
         db.session.commit()
 
         return {"message": "Quiz deleted successfully"}, 200
+
+    @jwt_auth_required
+    @role_required(["admin"])
+    def patch(self):
+        args = request.get_json()
+        quiz_id = args.get("id")
+        quiz_title = args.get("title")
+        time_duration = args.get("time_duration")
+        time_of_day_str = args.get("time_of_day")
+        chapter_id = args.get("chapter_id")
+        subject_id = args.get("subject_id")
+        date = args.get("date")
+        remarks = args.get("remarks")
+
+        quiz = Quiz.query.get(quiz_id)
+        if not quiz:
+            return {"message": "Quiz not found"}, 404
+
+        if quiz_title:
+            quiz.quiz_title = quiz_title
+        if time_duration:
+            quiz.time_duration = time_duration
+        if time_of_day_str:
+            try:
+
+                quiz.time_of_day = datetime.strptime(time_of_day_str, "%H:%M:%S").time()
+            except ValueError:
+                try:
+
+                    quiz.time_of_day = datetime.strptime(
+                        time_of_day_str, "%H:%M"
+                    ).time()
+                except ValueError:
+                    return {
+                        "message": "Invalid time format. Use HH:MM:SS or HH:MM."
+                    }, 400
+        if chapter_id:
+            quiz.chapter_id = chapter_id
+        if subject_id:
+            quiz.subject_id = subject_id
+        if date:
+            try:
+                quiz.date_of_quiz = datetime.strptime(date, "%Y-%m-%d").date()
+            except ValueError:
+                return {"message": "Invalid date format. Use YYYY-MM-DD."}, 400
+        if remarks:
+            quiz.remarks = remarks
+
+        db.session.commit()
+
+        return {"message": "Quiz updated successfully"}, 200
 
 
 class QuestionResources(Resource):
@@ -611,6 +659,42 @@ class QuestionResources(Resource):
 
         return {"message": "Question deleted successfully"}, 200
 
+    @jwt_auth_required
+    @role_required(["admin"])
+    def patch(self):
+        args = request.get_json()
+        question_id = args.get("id")
+        question_text = args.get("question")
+        option1 = args.get("option1")
+        option2 = args.get("option2")
+        option3 = args.get("option3")
+        option4 = args.get("option4")
+        answer = args.get("answer")
+        marks = args.get("marks")
+
+        question = Question.query.get(question_id)
+        if not question:
+            return {"message": "Question not found"}, 404
+
+        if question_text:
+            question.question = question_text
+        if option1:
+            question.option1 = option1
+        if option2:
+            question.option2 = option2
+        if option3:
+            question.option3 = option3
+        if option4:
+            question.option4 = option4
+        if answer:
+            question.answer = answer
+        if marks is not None:
+            question.marks = marks
+
+        db.session.commit()
+
+        return {"message": "Question updated successfully"}, 200
+
 
 class UserDashboardResource(Resource):
     @jwt_auth_required
@@ -669,7 +753,7 @@ class UserDashboardResource(Resource):
 class ScoresResource(Resource):
     @jwt_auth_required
     @role_required(["user"])
-    @cache_result(expiration=120)
+    @cache_result()
     def get(self):
         """return all the scores of the user"""
         user_id = get_jwt_identity()

@@ -2,51 +2,6 @@
 
 QuizNexus is a comprehensive quiz management system designed for educational institutions and online learning platforms. It provides a complete solution for creating, managing, and taking quizzes with real-time analytics and role-based access control.
 
-<!-- ## Features
-
-### 🎯 Core Functionality
-- **Quiz Management**: Create, edit, and organize quizzes by subjects and chapters
-- **Question Bank**: Support for multiple choice questions with customizable options
-- **Real-time Quiz Taking**: Interactive quiz interface with timer functionality
-- **Automated Scoring**: Instant score calculation and result display
-- **Progress Tracking**: Comprehensive analytics and performance metrics
-
-### 👥 User Management
-- **Role-based Access Control**: Separate interfaces for administrators and students
-- **Secure Authentication**: JWT-based authentication with refresh tokens
-- **User Profiles**: Customizable user profiles with personal information
-- **Registration System**: Self-service user registration with validation
-
-### 📊 Analytics & Reporting
-- **Performance Dashboard**: Visual charts showing quiz performance by subject and chapter
-- **Score History**: Detailed scoring history with timestamps
-- **Statistical Analysis**: Average scores, completion rates, and trend analysis
-- **Data Export**: CSV export functionality for administrative reporting
-
-### 🔧 Administrative Features
-- **Subject Management**: Create and organize academic subjects
-- **Chapter Organization**: Structure content by chapters within subjects
-- **User Administration**: Manage user accounts and permissions
-- **System Analytics**: Overview of system usage and statistics
-
-## Technology Stack
-
-### Frontend
-- **Vue.js 3**: Progressive JavaScript framework with Composition API
-- **Vue Router 4**: Client-side routing and navigation
-- **Vuex 4**: State management for application data
-- **Bootstrap 5**: CSS framework for responsive design
-- **Chart.js**: Data visualization for analytics
-- **Axios**: HTTP client for API communication
-
-### Backend
-- **Python Flask**: Lightweight web framework
-- **Flask-RESTful**: RESTful API development
-- **Flask-JWT-Extended**: JWT authentication and authorization
-- **SQLAlchemy**: ORM for database operations
-- **SQLite**: Database engine (development)
-- **Werkzeug**: Password hashing and security utilities -->
-
 ## Prerequisites
 
 Before running the application, ensure you have:
