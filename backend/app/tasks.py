@@ -3,7 +3,6 @@ import io
 import logging  # Add logging import if not already present
 from datetime import datetime, timedelta
 
-
 from app.celery_app import celery_app
 from app.email import send_email_with_attachment
 from app.models import *
@@ -103,7 +102,7 @@ def generate_user_stats_csv():
 
         admin_users = User.query.filter_by(role="admin").all()
         logging.info(f"Sending CSV report to {len(admin_users)} admin users")
-        
+
         for admin in admin_users:
             logging.info(f"Attempting to send email to admin: {admin.username}")
             email_sent = send_email_with_attachment(

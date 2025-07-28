@@ -5,19 +5,27 @@ import time
 from datetime import datetime, timedelta, timezone
 from operator import ge
 
+from app.api.validators import (
+    UserLoginParser,
+    UserRegisterParser,
+    add_chapter_parser,
+    add_quiz_parser,
+    add_subject_parser,
+    checkTokenParser,
+    questions_add_parser,
+    take_response_parser,
+)
+from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
+from app.models import Chapter, Question, Quiz, QuizResponse, Score, Subject, User, db
 from flask import make_response, request
-from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
-                                jwt_required)
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+)
 from flask_restful import Resource
 from werkzeug.security import generate_password_hash
-
-from app.api.validators import (UserLoginParser, UserRegisterParser,
-                                add_chapter_parser, add_quiz_parser,
-                                add_subject_parser, checkTokenParser,
-                                questions_add_parser, take_response_parser)
-from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
-from app.models import (Chapter, Question, Quiz, QuizResponse, Score, Subject,
-                        User, db)
 
 
 class CheckTokenValidResource(Resource):
@@ -682,7 +690,6 @@ class TakeQuizResource(Resource):
         if not quiz:
             return {"message": "Quiz not found"}, 404
 
-        
         subject = Subject.query.get(quiz.subject_id)
         chapter = Chapter.query.get(quiz.chapter_id)
 
@@ -690,31 +697,31 @@ class TakeQuizResource(Resource):
         questions_data = []
         for question in questions:
             questions_data.append(
-            {
-                "id": question.id,
-                "question": question.question,
-                "options": [
-                question.option1,
-                question.option2,
-                question.option3,
-                question.option4,
-                ],
-                "marks": question.marks,
-            }
+                {
+                    "id": question.id,
+                    "question": question.question,
+                    "options": [
+                        question.option1,
+                        question.option2,
+                        question.option3,
+                        question.option4,
+                    ],
+                    "marks": question.marks,
+                }
             )
 
         return {
             "data": {
-            "quiz_id": quiz.id,
-            "quiz_title": quiz.quiz_title,
-            "number_of_questions": len(questions),
-            "time_duration": quiz.time_duration,
-            "time_of_day": (
-                quiz.time_of_day.isoformat() if quiz.time_of_day else None
-            ),
-            "subject_name": subject.name if subject else None,
-            "chapter_name": chapter.name if chapter else None,
-            "questions": questions_data,
+                "quiz_id": quiz.id,
+                "quiz_title": quiz.quiz_title,
+                "number_of_questions": len(questions),
+                "time_duration": quiz.time_duration,
+                "time_of_day": (
+                    quiz.time_of_day.isoformat() if quiz.time_of_day else None
+                ),
+                "subject_name": subject.name if subject else None,
+                "chapter_name": chapter.name if chapter else None,
+                "questions": questions_data,
             }
         }, 200
 

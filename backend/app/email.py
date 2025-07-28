@@ -37,7 +37,6 @@ def configure_mail(app):
     return mail
 
 
-
 def send_email_with_attachment(to_email, subject, body, attachment_data, filename):
     """Send email with CSV attachment"""
     # Configure for MailHog

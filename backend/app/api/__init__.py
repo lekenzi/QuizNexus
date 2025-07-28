@@ -5,15 +5,27 @@ api = Api()
 cache = Cache()
 
 
-from app.api.resource import (ChapterResources, CheckTokenValidResource,
-                              QuestionResources, QuizResources,
-                              ReturnUsersScoreBoard, ScoresResource,
-                              SubjectResources, TakeQuizResource,
-                              TakeResponseResource, TestPostResource,
-                              UserDashboardResource, UserLoginResource,
-                              UserLogoutResource, UserRegisterResource)
-from app.api.resource.admin import (AdminDashboardResource, AdminUsersResource,
-                                    ExportUserStatsResource)
+from app.api.resource import (
+    ChapterResources,
+    CheckTokenValidResource,
+    QuestionResources,
+    QuizResources,
+    ReturnUsersScoreBoard,
+    ScoresResource,
+    SubjectResources,
+    TakeQuizResource,
+    TakeResponseResource,
+    TestPostResource,
+    UserDashboardResource,
+    UserLoginResource,
+    UserLogoutResource,
+    UserRegisterResource,
+)
+from app.api.resource.admin import (
+    AdminDashboardResource,
+    AdminUsersResource,
+    ExportUserStatsResource,
+)
 
 api.add_resource(UserLoginResource, "/api/login", endpoint="login")
 api.add_resource(UserRegisterResource, "/api/register", endpoint="register")
