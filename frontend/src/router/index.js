@@ -11,8 +11,10 @@ import UserDashBoardView from "@/components/users/UserDashBoardView.vue";
 import UnauthorisedComponent from "@/components/unauthorised/UnauthorisedComponent.vue";
 import ScoresView from "@/components/users/ScoresView.vue";
 import QuizPage from "@/components/users/QuizPage.vue";
-// Removed unused import
-
+import MyStatsView from "@/components/users/MyStatsView.vue";
+import AdminDashboardComponent from "@/components/admin/AdminDashboardComponent.vue";
+import AdminUsersComponent from "@/components/admin/AdminUsersComponent.vue";
+import AdminExportComponent from "@/components/admin/AdminExportComponent.vue";
 const routes = [
   {
     path: "/login",
@@ -115,6 +117,42 @@ const routes = [
     meta: {
       requiresAuth: true,
       requiresRole: "user",
+    },
+  },
+  {
+    path: "/mystats",
+    name: "mystats",
+    component: MyStatsView,
+    meta: {
+      requiresAuth: true,
+      requiresRole: "user",
+    },
+  },
+  {
+    path: "/admin/dashboard",
+    name: "admin_dashboard",
+    component: AdminDashboardComponent,
+    meta: {
+      requiresAuth: true,
+      requiresRole: "admin",
+    },
+  },
+  {
+    path: "/admin/users",
+    name: "admin_users",
+    component: AdminUsersComponent,
+    meta: {
+      requiresAuth: true,
+      requiresRole: "admin",
+    },
+  },
+  {
+    path: "/admin/export",
+    name: "admin_export",
+    component: AdminExportComponent,
+    meta: {
+      requiresAuth: true,
+      requiresRole: "admin",
     },
   },
 ];

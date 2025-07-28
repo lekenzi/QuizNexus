@@ -50,23 +50,29 @@ checkTokenParser.add_argument(
     "access_token",
     type=str,
     required=False,
-    help="Access token",
+    help="Access token in request body",
     location="json",
 )
-
+checkTokenParser.add_argument(
+    "Authorization",
+    type=str,
+    required=False,
+    help="Bearer token in Authorization header",
+    location="headers",
+)
 
 add_subject_parser = reqparse.RequestParser()
 add_subject_parser.add_argument(
     "name",
     type=str,
-    required=False,  # Changed to False for better error handling
+    required=True,
     help="Subject name is required",
     location="json",
 )
 add_subject_parser.add_argument(
     "description",
     type=str,
-    required=False,  # Changed to False for better error handling
+    required=True,
     help="Subject description is required",
     location="json",
 )
@@ -76,14 +82,14 @@ add_chapter_parser = reqparse.RequestParser()
 add_chapter_parser.add_argument(
     "name",
     type=str,
-    required=False,  # Changed to False for better error handling
+    required=True,
     help="Chapter name is required",
     location="json",
 )
 add_chapter_parser.add_argument(
     "description",
     type=str,
-    required=False,  # Changed to False for better error handling
+    required=True,
     help="Chapter description is required",
     location="json",
 )
@@ -114,14 +120,14 @@ add_quiz_parser.add_argument(
 add_quiz_parser.add_argument(
     "time_of_day",
     type=str,
-    required=False,
+    required=True,
     help="Time of day is optional, default is current time",
     location="json",
 )
 add_quiz_parser.add_argument(
     "remarks",
     type=str,
-    required=False,
+    required=True,
     help="Remarks are optional",
     location="json",
 )
@@ -194,7 +200,7 @@ questions_add_parser.add_argument(
 questions_add_parser.add_argument(
     "marks",
     type=int,
-    required=False,
+    required=True,
     help="Marks are optional, default is 1",
     location="json",
 )

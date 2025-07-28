@@ -48,13 +48,40 @@
                 Quizzes
               </router-link>
             </li>
-            <li class="nav-item">
+            <!-- <li class="nav-item">
               <router-link
                 to="/summary"
                 class="nav-link"
                 :class="{ active: isActive('/summary') }"
               >
                 Summary
+              </router-link>
+            </li> -->
+            <li class="nav-item">
+              <router-link
+                to="/admin/dashboard"
+                class="nav-link"
+                :class="{ active: isActive('/admin/dashboard') }"
+              >
+                Dashboard
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link
+                to="/admin/users"
+                class="nav-link"
+                :class="{ active: isActive('/admin/users') }"
+              >
+                Users
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link
+                to="/admin/export"
+                class="nav-link"
+                :class="{ active: isActive('/admin/export') }"
+              >
+                Export
               </router-link>
             </li>
             <li class="nav-item danger-bg">
@@ -91,15 +118,6 @@
                 :class="{ active: isActive('/mystats') }"
               >
                 My Stats
-              </router-link>
-            </li>
-            <li class="nav-item">
-              <router-link
-                to="/profile"
-                class="nav-link"
-                :class="{ active: isActive('/profile') }"
-              >
-                Profile
               </router-link>
             </li>
             <li class="nav-item danger-bg">

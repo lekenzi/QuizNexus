@@ -38,11 +38,13 @@ export default {
             ...quiz,
             time_of_day: quiz.time_of_day || "00:00",
           })) || [];
+        console.log("Upcoming Quizzes:", this.upcomingQuizzes);
         this.pastQuizzes =
           response.past_quizzes.map((quiz) => ({
             ...quiz,
             time_of_day: quiz.time_of_day || "00:00",
           })) || [];
+        console.log("Past Quizzes:", this.pastQuizzes);
       } catch (error) {
         console.error("Error fetching quizzes:", error);
       }

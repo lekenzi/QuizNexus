@@ -2,30 +2,22 @@ import email
 import logging
 import select
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from operator import ge
 
-from app.api.validators import (
-    UserLoginParser,
-    UserRegisterParser,
-    add_chapter_parser,
-    add_quiz_parser,
-    add_subject_parser,
-    checkTokenParser,
-    questions_add_parser,
-    take_response_parser,
-)
-from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
-from app.models import Chapter, Question, Quiz, QuizResponse, Score, Subject, User, db
 from flask import make_response, request
-from flask_jwt_extended import (
-    create_access_token,
-    get_jwt,
-    get_jwt_identity,
-    jwt_required,
-)
+from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
+                                jwt_required)
 from flask_restful import Resource
 from werkzeug.security import generate_password_hash
+
+from app.api.validators import (UserLoginParser, UserRegisterParser,
+                                add_chapter_parser, add_quiz_parser,
+                                add_subject_parser, checkTokenParser,
+                                questions_add_parser, take_response_parser)
+from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
+from app.models import (Chapter, Question, Quiz, QuizResponse, Score, Subject,
+                        User, db)
 
 
 class CheckTokenValidResource(Resource):
@@ -437,7 +429,16 @@ class QuizResources(Resource):
         logging.info(f"Received args for quiz creation: {args}")
         quiz_title = args["title"]
         time_duration = args["timeduration"]
-        time_of_day = datetime.strptime(args.get("time_of_day"), "%H:%M").time()
+        time_of_day_str = args.get("time_of_day")
+        if time_of_day_str:
+            try:
+                time_of_day = datetime.strptime(time_of_day_str, "%H:%M:%S").time()
+            except ValueError:
+                logging.warning(f"Invalid time_of_day format: {time_of_day_str}")
+                return {"message": "Invalid time_of_day format. Use HH:MM."}, 400
+        else:
+            logging.info("time_of_day not provided, defaulting to None")
+            time_of_day = None
         chapter_id = args["chapter_id"]
         subject_id = args["subject_id"]
         date = args["date"]
@@ -598,18 +599,20 @@ class UserDashboardResource(Resource):
         """
         Return quizzes categorized into two parts: upcoming quizzes and past quizzes.
         """
-        current_date = datetime.now().date()
+        current_datetime = datetime.now()
+
         quizzes = Quiz.query.order_by(Quiz.date_of_quiz.asc()).all()
         upcoming_quizzes = []
         past_quizzes = []
 
-        current_datetime = datetime.now()
-
-        for quiz in quizzes:  # possible bug here if time_of_day is None
-            quiz_datetime = (
+        for quiz in quizzes:
+            quiz_start_datetime = (
                 datetime.combine(quiz.date_of_quiz, quiz.time_of_day)
                 if quiz.time_of_day
                 else datetime.combine(quiz.date_of_quiz, datetime.min.time())
+            )
+            quiz_end_datetime = quiz_start_datetime + timedelta(
+                minutes=quiz.time_duration
             )
             quiz_data = {
                 "id": quiz.id,
@@ -622,7 +625,7 @@ class UserDashboardResource(Resource):
                     quiz.time_of_day.isoformat() if quiz.time_of_day else None
                 ),
             }
-            if quiz_datetime >= current_datetime:
+            if quiz_end_datetime > current_datetime:
                 upcoming_quizzes.append(quiz_data)
             else:
                 past_quizzes.append(quiz_data)
@@ -679,32 +682,39 @@ class TakeQuizResource(Resource):
         if not quiz:
             return {"message": "Quiz not found"}, 404
 
+        
+        subject = Subject.query.get(quiz.subject_id)
+        chapter = Chapter.query.get(quiz.chapter_id)
+
         questions = Question.query.filter_by(quiz_id=quiz_id).all()
         questions_data = []
         for question in questions:
             questions_data.append(
-                {
-                    "id": question.id,
-                    "question": question.question,
-                    "options": [
-                        question.option1,
-                        question.option2,
-                        question.option3,
-                        question.option4,
-                    ],
-                    "marks": question.marks,
-                }
+            {
+                "id": question.id,
+                "question": question.question,
+                "options": [
+                question.option1,
+                question.option2,
+                question.option3,
+                question.option4,
+                ],
+                "marks": question.marks,
+            }
             )
 
         return {
             "data": {
-                "quiz_id": quiz.id,
-                "number_of_questions": len(questions),
-                "time_duration": quiz.time_duration,
-                "time_of_day": (
-                    quiz.time_of_day.isoformat() if quiz.time_of_day else None
-                ),
-                "questions": questions_data,
+            "quiz_id": quiz.id,
+            "quiz_title": quiz.quiz_title,
+            "number_of_questions": len(questions),
+            "time_duration": quiz.time_duration,
+            "time_of_day": (
+                quiz.time_of_day.isoformat() if quiz.time_of_day else None
+            ),
+            "subject_name": subject.name if subject else None,
+            "chapter_name": chapter.name if chapter else None,
+            "questions": questions_data,
             }
         }, 200
 
@@ -718,7 +728,7 @@ class TakeResponseResource(Resource):
         Expects a JSON body with quiz_id, question_id, and selected_option.
         """
         try:
-            # Validate user authentication
+
             user_id = get_jwt_identity()
             if not user_id:
                 return {"message": "Authentication required"}, 401
@@ -728,29 +738,26 @@ class TakeResponseResource(Resource):
             question_id = args["question_id"]
             selected_option = args["selected_option"]
 
-            # Validate quiz exists
             quiz = Quiz.query.get(quiz_id)
             if not quiz:
                 return {"message": "Quiz not found"}, 404
 
-            # Validate question exists
             question = Question.query.get(question_id)
             if not question:
                 return {"message": "Question not found"}, 404
 
-            # Check for existing response
             existing_response = QuizResponse.query.filter_by(
                 quiz_id=quiz_id, user_id=user_id, question_id=question_id
             ).first()
 
             if existing_response:
-                # Update existing response
+
                 existing_response.selected_option = selected_option
                 existing_response.is_correct = question.answer == selected_option
                 existing_response.timestamp = datetime.now()
                 response_id = existing_response.id
             else:
-                # Create new response
+
                 quiz_response = QuizResponse(
                     quiz_id=quiz_id,
                     user_id=user_id,
@@ -774,3 +781,39 @@ class TakeResponseResource(Resource):
             db.session.rollback()
             logging.error(f"Error recording response: {str(e)}")
             return {"message": "Error recording response", "error": str(e)}, 500
+
+
+class ReturnUsersScoreBoard(Resource):
+    @jwt_auth_required
+    @role_required(["user"])
+    def get(self):
+        """
+        Return the user's score board with detailed scores for each quiz.
+        """
+        user_id = get_jwt_identity()
+        if not user_id:
+            return {"message": "Authentication required"}, 401
+
+        scores = Score.query.filter_by(user_id=user_id).all()
+        if not scores:
+            return {"message": "No scores found for this user"}, 404
+
+        scores_data = []
+        for score in scores:
+            quiz = Quiz.query.get(score.quiz_id)
+            subject = Subject.query.get(quiz.subject_id) if quiz else None
+            chapter = Chapter.query.get(quiz.chapter_id) if quiz else None
+
+            scores_data.append(
+                {
+                    "id": score.id,
+                    "quiz_id": score.quiz_id,
+                    "quiz_title": quiz.quiz_title if quiz else None,
+                    "subject_name": subject.name if subject else None,
+                    "chapter_name": chapter.name if chapter else None,
+                    "score": score.score,
+                    "timestamp": score.timestamp.isoformat(),
+                }
+            )
+
+        return {"scores": scores_data}, 200

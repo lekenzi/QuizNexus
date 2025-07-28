@@ -16,8 +16,8 @@
       <tbody>
         <tr v-for="quiz in quizzes" :key="quiz.id">
           <td class="font-weight-bold text-secondary">{{ quiz.title }}</td>
-          <td class="text-muted">{{ quiz.date_of_quiz }}</td>
-          <td class="text-muted">{{ quiz.time_of_day }}</td>
+          <td class="text-muted">{{ formatDateOnly(quiz.date_of_quiz) }}</td>
+          <td class="text-muted">{{ formatTimeOnly(quiz.time_of_day) }}</td>
           <td>{{ quiz.duration }} minutes</td>
           <td>
             <button
@@ -62,6 +62,25 @@ export default {
     },
     handleAction(quizId) {
       this.$router.push({ name: "quiz_page", params: { quiz_id: quizId } });
+    },
+    formatDateOnly(dateString) {
+      if (!dateString) return "N/A";
+      // Extract just the date part from ISO string
+      const date = new Date(dateString);
+      if (isNaN(date)) return dateString;
+      return date.toLocaleDateString();
+    },
+    formatTimeOnly(timeString) {
+      if (!timeString) return "N/A";
+
+      // If it's a full ISO string, extract just the time
+      if (timeString.includes("T")) {
+        const timePart = timeString.split("T")[1];
+        return timePart.split(".")[0]; // Remove milliseconds if present
+      }
+
+      // If it's already just a time string
+      return timeString.split(".")[0]; // Remove any milliseconds
     },
   },
 };

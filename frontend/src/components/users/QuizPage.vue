@@ -3,6 +3,7 @@
     <QuizSubmittionSubNav
       :quiz_id="quiz_id"
       :questions="Array.isArray(questions.questions) ? questions.questions : []"
+      :number_of_questions="number_of_questions"
       :answeredQuestions="answeredQuestions"
       :countdown="countdown"
       :quizStarted="quizStarted"

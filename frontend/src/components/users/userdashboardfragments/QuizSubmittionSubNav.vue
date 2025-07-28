@@ -16,9 +16,9 @@
             <p class="mb-2">
               <strong>Duration:</strong> {{ quizDuration }} minutes
             </p>
-            <p class="mb-2">
-              <strong>Questions:</strong> {{ questions.length }}
-            </p>
+            <!-- <p class="mb-2">
+              <strong>Questions:</strong> {{ number_of_questions }} total
+            </p> -->
             <p class="mb-2"><strong>Subject:</strong> {{ subjectName }}</p>
             <p class="mb-2"><strong>Chapter:</strong> {{ chapterName }}</p>
           </div>
@@ -113,6 +113,7 @@
 export default {
   name: "QuizSubmissionSubNav",
   props: {
+    number_of_questions: { type: Number, required: true },
     quiz_id: { type: Number, required: true },
     questions: { type: Array, required: true, default: () => [] },
     answeredQuestions: { type: Object, required: true, default: () => ({}) },

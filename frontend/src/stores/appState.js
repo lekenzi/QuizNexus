@@ -308,3 +308,88 @@ export async function initializeAuth() {
     return false;
   }
 }
+
+// Admin API functions
+export async function fetchAdminDashboardStats() {
+  try {
+    const response = await make_getrequest("/admin/dashboard");
+    return response.statistics || {};
+  } catch (error) {
+    console.error("Error fetching admin dashboard stats:", error);
+    throw error;
+  }
+}
+
+export async function fetchAdminUsers(page = 1, per_page = 10) {
+  try {
+    const response = await make_getrequest("/admin/users", { page, per_page });
+    return response || { users: [], pagination: {} };
+  } catch (error) {
+    console.error("Error fetching admin users:", error);
+    throw error;
+  }
+}
+
+export async function triggerUserStatsExport() {
+  try {
+    const response = await make_postrequest("/admin/export");
+    return response || {};
+  } catch (error) {
+    console.error("Error triggering user stats export:", error);
+    throw error;
+  }
+}
+
+export async function fetchExportsList() {
+  try {
+    const response = await make_getrequest("/admin/export");
+    return response.exports || [];
+  } catch (error) {
+    console.error("Error fetching exports list:", error);
+    throw error;
+  }
+}
+
+export async function downloadExportFile(filename) {
+  try {
+    const token = localStorage.getItem("token") || store.state.TOKEN;
+    const response = await fetch(
+      `${store.state.BASEURL}/admin/export?filename=${filename}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Download failed");
+    }
+
+    // Get the blob from the response
+    const blob = await response.blob();
+
+    // Create a URL for the blob
+    const url = window.URL.createObjectURL(blob);
+
+    // Create a temporary link to trigger the download
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = filename;
+
+    // Add to the DOM and trigger the download
+    document.body.appendChild(a);
+    a.click();
+
+    // Clean up
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    return true;
+  } catch (error) {
+    console.error("Error downloading file:", error);
+    throw error;
+  }
+}

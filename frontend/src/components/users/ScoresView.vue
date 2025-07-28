@@ -1,6 +1,13 @@
 <template>
   <div class="scores-view container mt-5 p-4 bg-light rounded shadow">
     <h1 class="title text-center text-primary mb-3">Your Scores</h1>
+
+    <div class="mb-4 text-center">
+      <router-link to="/mystats" class="btn btn-primary">
+        View Performance Charts
+      </router-link>
+    </div>
+
     <p class="description text-center text-secondary mb-4">
       Below are your scores displayed in a table format:
     </p>
@@ -9,7 +16,7 @@
 </template>
 
 <script>
-import make_getrequest from "@/stores/appState";
+import { make_getrequest } from "@/stores/appState";
 import ScoresTableComponent from "./userdashboardfragments/ScoresTableComponent.vue";
 
 export default {
@@ -28,12 +35,13 @@ export default {
   methods: {
     async fetchScores() {
       try {
-        const response = await make_getrequest("/scores");
-        if (!response || !response.data) {
+        const response = await make_getrequest("/scoreboard");
+        if (!response || !response.scores) {
           console.error("Invalid response format:", response);
           return;
         }
-        this.scores = response.data;
+        // API returns { scores: [...] }
+        this.scores = response.scores;
       } catch (error) {
         console.error("Error fetching scores:", error);
       }

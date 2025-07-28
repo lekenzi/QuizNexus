@@ -5,23 +5,15 @@ api = Api()
 cache = Cache()
 
 
-# add all the resources and routes here for the API
-
-from app.api.resource import (
-    ChapterResources,
-    CheckTokenValidResource,
-    QuestionResources,
-    QuizResources,
-    ScoresResource,
-    SubjectResources,
-    TakeQuizResource,
-    TakeResponseResource,
-    TestPostResource,
-    UserDashboardResource,
-    UserLoginResource,
-    UserLogoutResource,
-    UserRegisterResource,
-)
+from app.api.resource import (ChapterResources, CheckTokenValidResource,
+                              QuestionResources, QuizResources,
+                              ReturnUsersScoreBoard, ScoresResource,
+                              SubjectResources, TakeQuizResource,
+                              TakeResponseResource, TestPostResource,
+                              UserDashboardResource, UserLoginResource,
+                              UserLogoutResource, UserRegisterResource)
+from app.api.resource.admin import (AdminDashboardResource, AdminUsersResource,
+                                    ExportUserStatsResource)
 
 api.add_resource(UserLoginResource, "/api/login", endpoint="login")
 api.add_resource(UserRegisterResource, "/api/register", endpoint="register")
@@ -40,3 +32,11 @@ api.add_resource(UserDashboardResource, "/api/dashboard", endpoint="dashboard")
 api.add_resource(ScoresResource, "/api/scores", endpoint="scores")
 api.add_resource(TakeQuizResource, "/api/fetchQuestions", endpoint="fetchQuestions")
 api.add_resource(TakeResponseResource, "/api/takeResponse", endpoint="takeResponse")
+api.add_resource(ReturnUsersScoreBoard, "/api/scoreboard", endpoint="scoreboard")
+
+
+api.add_resource(
+    AdminDashboardResource, "/api/admin/dashboard", endpoint="admin_dashboard"
+)
+api.add_resource(ExportUserStatsResource, "/api/admin/export", endpoint="admin_export")
+api.add_resource(AdminUsersResource, "/api/admin/users", endpoint="admin_users")

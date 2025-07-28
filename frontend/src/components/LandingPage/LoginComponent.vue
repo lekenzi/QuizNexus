@@ -1,5 +1,5 @@
 <template>
-  <div class="container d-flex align-items-center justify-content-center">
+  <div class="container d-flex align-items-center mt-4 justify-content-center">
     <div class="card shadow p-4" style="max-width: 400px; width: 100%">
       <h2 class="text-center mb-4">Login</h2>
       <form @submit.prevent="handleLogin">

@@ -77,7 +77,7 @@
                 >
                   <option value="" disabled>Select time</option>
                   <option v-for="hour in hours" :key="hour" :value="hour">
-                    {{ hour }}:00
+                    {{ hour.toString().padStart(2, "0") }}:00
                   </option>
                 </select>
               </div>
@@ -278,6 +278,10 @@ export default {
 
     async handleSubmit() {
       try {
+        // Format the time_of_day value properly (HH:MM:SS)
+        const formattedHour = this.form.time_of_day.toString().padStart(2, "0");
+        const formattedTimeOfDay = `${formattedHour}:00:00`;
+
         const payload = {
           title: this.form.quiztitle,
           remarks: this.form.remarks,
@@ -285,7 +289,7 @@ export default {
           date: this.form.date,
           subject_id: this.form.subject,
           chapter_id: this.form.chapter,
-          time_of_day: this.form.time_of_day,
+          time_of_day: formattedTimeOfDay,
         };
 
         const response = await make_postrequest("/quizzes", payload);
