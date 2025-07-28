@@ -6,20 +6,38 @@ from datetime import datetime, timedelta, timezone
 from operator import ge
 
 import jwt
-from flask import make_response, request
-from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
-                                jwt_required)
-from flask_restful import Resource
-from werkzeug.security import generate_password_hash
-
-from app.api.validators import (UserLoginParser, UserRegisterParser,
-                                add_chapter_parser, add_quiz_parser,
-                                add_subject_parser, checkTokenParser,
-                                questions_add_parser, take_response_parser)
+from app.api.validators import (
+    UserLoginParser,
+    UserRegisterParser,
+    add_chapter_parser,
+    add_quiz_parser,
+    add_subject_parser,
+    checkTokenParser,
+    questions_add_parser,
+    take_response_parser,
+)
 from app.cache import CacheManager, cache_result, invalidate_cache
 from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
-from app.models import (Chapter, Question, Quiz, QuizResponse, Score, Subject,
-                        User, UserPreference, db)
+from app.models import (
+    Chapter,
+    Question,
+    Quiz,
+    QuizResponse,
+    Score,
+    Subject,
+    User,
+    UserPreference,
+    db,
+)
+from flask import make_response, request
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+)
+from flask_restful import Resource
+from werkzeug.security import generate_password_hash
 
 
 class CheckTokenValidResource(Resource):
@@ -78,7 +96,7 @@ class UserLoginResource(Resource):
                 access_token = create_access_token(
                     identity=str(user.id), additional_claims={"role": user.role}
                 )
-        
+
         user_preferences = UserPreference.query.filter_by(user_id=user.id).first()
         if user_preferences:
             user_preferences.last_visit = datetime.now().astimezone()

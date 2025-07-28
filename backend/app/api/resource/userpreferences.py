@@ -1,12 +1,11 @@
 from datetime import datetime
 
-from flask import request
-from flask_jwt_extended import get_jwt_identity
-from flask_restful import Resource
-
 from app.cache import cache_result
 from app.middleware.auth_middleware import jwt_auth_required, role_required
 from app.models import User, UserPreference, db
+from flask import request
+from flask_jwt_extended import get_jwt_identity
+from flask_restful import Resource
 
 
 class UserPreferencesResource(Resource):
@@ -66,12 +65,12 @@ class UserPreferencesResource(Resource):
 
         if reminder_time:
             try:
-                
-                if len(reminder_time) == 5:  
+
+                if len(reminder_time) == 5:
                     user_preferences.reminder_time = datetime.strptime(
                         reminder_time, "%H:%M"
                     ).time()
-                else:  
+                else:
                     user_preferences.reminder_time = datetime.strptime(
                         reminder_time, "%H:%M:%S"
                     ).time()

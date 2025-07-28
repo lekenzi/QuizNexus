@@ -12,7 +12,6 @@ from flask_mail import Mail, Message
 class EmailConfig:
     """Email configuration class"""
 
-    
     MAIL_SERVER = "localhost"
     MAIL_PORT = 1025
     MAIL_USE_TLS = False
@@ -24,7 +23,7 @@ class EmailConfig:
 
 def configure_mail(app):
     """Configure Flask-Mail"""
-    
+
     app.config["MAIL_SERVER"] = "localhost"
     app.config["MAIL_PORT"] = 1025
     app.config["MAIL_USE_TLS"] = False
@@ -39,7 +38,7 @@ def configure_mail(app):
 
 def send_email_with_attachment(to_email, subject, body, attachment_data, filename):
     """Send email with CSV attachment"""
-    
+
     smtp_server = "localhost"
     smtp_port = 1025
     smtp_user = "noreply@quiznexus.com"
@@ -60,9 +59,7 @@ def send_email_with_attachment(to_email, subject, body, attachment_data, filenam
 
     try:
         server = smtplib.SMTP(smtp_server, smtp_port)
-        
-        
-        
+
         server.send_message(msg)
         server.quit()
         return True
@@ -83,7 +80,6 @@ def send_email(to_email, subject, body, is_html=False):
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    
     if is_html:
         msg.attach(MIMEText(body, "html"))
     else:

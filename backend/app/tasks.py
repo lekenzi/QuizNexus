@@ -349,7 +349,7 @@ def send_daily_reminders():
         now = datetime.now()
         current_time = now.time()
         today = now.date()
-        yesterday = today - timedelta(seconds=1)  
+        yesterday = today - timedelta(seconds=1)
 
         logging.info(
             f"Running daily reminders check at {now.strftime('%Y-%m-%d %H:%M:%S')}"
@@ -366,11 +366,9 @@ def send_daily_reminders():
             "errors": [],
         }
 
-        
         new_quizzes = Quiz.query.filter(Quiz.date_of_quiz >= yesterday).all()
         logging.info(f"Found {len(new_quizzes)} new quizzes since yesterday")
 
-        
         week_ahead = today + timedelta(days=7)
         upcoming_quizzes = Quiz.query.filter(
             Quiz.date_of_quiz >= today,
@@ -407,36 +405,34 @@ def send_daily_reminders():
                     user_reminder_time.hour * 60 + user_reminder_time.minute
                 )
 
-                
                 if abs(current_minutes - reminder_minutes) > 0:
                     continue
 
                 reminder_stats["users_due_for_reminders"] += 1
-                logging.info(f"Processing reminder for user {user.username} at {user_reminder_time.strftime('%H:%M')}")
-
-                
-                
+                logging.info(
+                    f"Processing reminder for user {user.username} at {user_reminder_time.strftime('%H:%M')}"
+                )
 
                 should_send_reminder = False
                 reminder_reasons = []
 
-                
                 if user_pref.last_visit:
                     days_since_visit = (now - user_pref.last_visit).days
-                    logging.info(f"User {user.username} last visited {days_since_visit} days ago")
-                    if days_since_visit >= 1:  
+                    logging.info(
+                        f"User {user.username} last visited {days_since_visit} days ago"
+                    )
+                    if days_since_visit >= 1:
                         should_send_reminder = True
                         reminder_reasons.append(
                             f"You haven't visited in {days_since_visit} days"
                         )
                         reminder_stats["inactive_users"] += 1
                 else:
-                    
+
                     should_send_reminder = True
                     reminder_reasons.append("Welcome back! Check out what's new")
                     reminder_stats["inactive_users"] += 1
 
-                
                 if new_quizzes:
                     should_send_reminder = True
                     reminder_reasons.append(
@@ -444,7 +440,6 @@ def send_daily_reminders():
                     )
                     reminder_stats["new_quiz_alerts"] += 1
 
-                
                 user_attempted_quizzes = (
                     db.session.query(Score.quiz_id).filter_by(user_id=user.id).all()
                 )
@@ -460,10 +455,12 @@ def send_daily_reminders():
                         f"{len(pending_quizzes)} upcoming quiz(es) you haven't attempted yet"
                     )
 
-                logging.info(f"Should send reminder to {user.username}: {should_send_reminder}, reasons: {reminder_reasons}")
+                logging.info(
+                    f"Should send reminder to {user.username}: {should_send_reminder}, reasons: {reminder_reasons}"
+                )
 
                 if should_send_reminder:
-                    
+
                     logging.info(f"Sending reminder email to {user.username}")
                     email_sent = send_quiz_reminder_email(
                         user.username,
@@ -479,7 +476,6 @@ def send_daily_reminders():
                             f"Reminder sent successfully to {user.username} at their preferred time {user_reminder_time.strftime('%H:%M')}"
                         )
 
-                        
                         user_pref.updated_at = now
                         db.session.commit()
                     else:
@@ -626,7 +622,7 @@ def test_monthly_reports():
 
     with app.app_context():
         now = datetime.now()
-        
+
         # Use current month instead of previous month for testing
         current_month = now.month
         current_year = now.year
@@ -636,7 +632,9 @@ def test_monthly_reports():
         last_day_num = monthrange(current_year, current_month)[1]
         last_day = datetime(current_year, current_month, last_day_num, 23, 59, 59)
 
-        logging.info(f"TEST: Generating monthly reports for {first_day.strftime('%B %Y')} (current month)")
+        logging.info(
+            f"TEST: Generating monthly reports for {first_day.strftime('%B %Y')} (current month)"
+        )
 
         users_with_reports = []
         all_users = User.query.filter_by(role="user").all()
@@ -650,7 +648,7 @@ def test_monthly_reports():
             "total_users": len(users_with_reports),
             "reports_sent": 0,
             "errors": [],
-            "test_mode": True
+            "test_mode": True,
         }
 
         logging.info(f"TEST: Found {len(users_with_reports)} users for testing")
@@ -666,8 +664,10 @@ def test_monthly_reports():
 
                 if not monthly_scores:
                     # For testing, create a mock report even with no activity
-                    logging.info(f"TEST: No activity for user {user.username}, creating mock report")
-                    
+                    logging.info(
+                        f"TEST: No activity for user {user.username}, creating mock report"
+                    )
+
                     report_data = {
                         "user_name": user.full_name,
                         "month": first_day.strftime("%B %Y"),
@@ -677,18 +677,24 @@ def test_monthly_reports():
                         "quiz_details": [],
                         "best_score": 0,
                         "improvement_trend": "insufficient_data",
-                        "test_mode": True
+                        "test_mode": True,
                     }
-                    
+
                     # Send test report
-                    email_sent = send_test_monthly_report_email(user.username, report_data)
-                    
+                    email_sent = send_test_monthly_report_email(
+                        user.username, report_data
+                    )
+
                     if email_sent:
                         report_stats["reports_sent"] += 1
-                        logging.info(f"TEST: Mock monthly report sent to {user.username}")
+                        logging.info(
+                            f"TEST: Mock monthly report sent to {user.username}"
+                        )
                     else:
-                        report_stats["errors"].append(f"Failed to send test report to {user.username}")
-                    
+                        report_stats["errors"].append(
+                            f"Failed to send test report to {user.username}"
+                        )
+
                     continue
 
                 # Process actual data if available
@@ -738,7 +744,7 @@ def test_monthly_reports():
                     "improvement_trend": calculate_improvement_trend(
                         user.id, first_day, last_day
                     ),
-                    "test_mode": True
+                    "test_mode": True,
                 }
 
                 email_sent = send_monthly_report_email(user.username, report_data)
