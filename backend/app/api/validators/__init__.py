@@ -1,4 +1,4 @@
-from flask_restful import reqparse
+from flask_restx import reqparse
 
 testparser = reqparse.RequestParser()
 

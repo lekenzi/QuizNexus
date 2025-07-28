@@ -60,6 +60,27 @@ class CacheManager:
     """Cache manager for common operations"""
 
     @staticmethod
+    def get_cached_data(key):
+        """Get generic cached data by key"""
+        try:
+            cached = redis_client.get(key)
+            if cached:
+                return json.loads(cached)
+        except Exception as e:
+            print(f"Cache get error for {key}: {e}")
+        return None
+
+    @staticmethod
+    def set_cached_data(key, data, expiration=300):
+        """Set generic cached data with key"""
+        try:
+            redis_client.setex(key, expiration, json.dumps(data, default=str))
+            return True
+        except Exception as e:
+            print(f"Cache set error for {key}: {e}")
+            return False
+
+    @staticmethod
     def get_subjects():
         """Get cached subjects"""
         cache_key = "subjects:all"
@@ -108,9 +129,27 @@ class CacheManager:
         invalidate_cache(pattern)
 
     @staticmethod
+    def invalidate_quizzes_cache():
+        """Invalidate all quizzes cache"""
+        invalidate_cache("quizzes:*")
+
+    @staticmethod
     def invalidate_subjects_cache():
         """Invalidate subjects cache"""
         invalidate_cache("subjects:*")
+
+    @staticmethod
+    def invalidate_chapters_cache(subject_id=None):
+        """Invalidate chapters cache for a specific subject or all chapters"""
+        if subject_id:
+            invalidate_cache(f"chapters:subject:{subject_id}*")
+        else:
+            invalidate_cache("chapters:*")
+
+    @staticmethod
+    def invalidate_dashboard_cache():
+        """Invalidate dashboard cache for all users"""
+        invalidate_cache("user_quizzes:*")
 
 
 def rate_limit(max_requests=100, window=3600):

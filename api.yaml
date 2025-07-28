@@ -1,1066 +1,292 @@
+basePath: /
+consumes:
+- application/json
 info:
-  title: QuizNexus API
-  description: |
-    QuizNexus is a comprehensive quiz management system API built with Flask. This API provides endpoints for user management, quiz creation and management, quiz taking functionality, and analytics.
-    
-    ## Authentication
-    The API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:
-    `Authorization: Bearer <your_jwt_token>`
-    
-    ## Base URL
-    - Development: `http://localhost:5000/api`
-    - Production: `https://your-domain.com/api`
-    
-    ## Roles
-    - **admin**: Full access to create and manage quizzes, subjects, chapters, and view all analytics
-    - **user**: Can take quizzes, view personal scores, and access user dashboard
-  version: 1.0.0
-  contact:
-    name: QuizNexus Support
-    email: support@quiznexus.com
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
-
-servers:
-  - url: http://localhost:5000/api
-    description: Development server
-  - url: https://api.quiznexus.com/api
-    description: Production server
-
-tags:
-  - name: Authentication
-    description: User authentication and token management
-  - name: Users
-    description: User management and profile operations
-  - name: Subjects
-    description: Academic subject management
-  - name: Chapters
-    description: Chapter management within subjects
-  - name: Quizzes
-    description: Quiz creation and management
-  - name: Questions
-    description: Question management for quizzes
-  - name: Quiz Taking
-    description: Quiz taking functionality for users
-  - name: Scoring
-    description: Score tracking and analytics
-  - name: Admin
-    description: Administrative functions and analytics
-
+  title: API
+  version: '1.0'
 paths:
-  # Authentication Endpoints
-  /login:
-    post:
-      tags:
-        - Authentication
-      summary: User login
-      description: Authenticate user credentials and receive JWT token
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - username
-                - password
-              properties:
-                username:
-                  type: string
-                  example: "john_doe"
-                password:
-                  type: string
-                  example: "securepassword"
-      responses:
-        '200':
-          description: Login successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Login successful"
-                  access_token:
-                    type: string
-                  user:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                      username:
-                        type: string
-                      isAuthenticated:
-                        type: boolean
-                      role:
-                        type: string
-                        enum: [admin, user]
-        '401':
-          description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+- - - /api/admin/dashboard
+    - get:
+        operationId: get_admin_dashboard_resource
+        responses:
+          '200':
+            description: Success
+        summary: Get admin dashboard statistics
+        tags:
+        - default
+  - - /api/admin/export
+    - get:
+        operationId: get_export_user_stats_resource
+        responses:
+          '200':
+            description: Success
+        summary: Check status of the export or download a specific file
+        tags:
+        - default
+      post:
+        operationId: post_export_user_stats_resource
+        responses:
+          '200':
+            description: Success
+        summary: Trigger asynchronous CSV generation of user statistics
+        tags:
+        - default
+  - - /api/admin/users
+    - get:
+        operationId: get_admin_users_resource
+        responses:
+          '200':
+            description: Success
+        summary: Get list of users with their statistics
+        tags:
+        - default
+  - - /api/chapters
+    - delete:
+        operationId: delete_chapter_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      get:
+        operationId: get_chapter_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      patch:
+        operationId: patch_chapter_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      post:
+        operationId: post_chapter_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+  - - /api/check_token_valid
+    - get:
+        description: 'Keyword arguments:
 
-  /register:
-    post:
-      tags:
-        - Authentication
-      summary: Register new user
-      description: Create a new user account
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - username
-                - password
-                - full_name
-                - date_of_birth
-              properties:
-                username:
-                  type: string
-                  example: "jane_doe"
-                password:
-                  type: string
-                  example: "securepassword"
-                full_name:
-                  type: string
-                  example: "Jane Doe"
-                date_of_birth:
-                  type: string
-                  format: date
-                  example: "1995-05-15"
-      responses:
-        '201':
-          description: User registered successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  access_token:
-                    type: string
-                  user:
-                    $ref: '#/components/schemas/User'
-        '400':
-          description: Username already exists or validation error
+          argument -- description
 
-  /logout:
-    post:
-      tags:
-        - Authentication
-      summary: User logout
-      description: Invalidate user session and JWT token
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Logout successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  logged_out:
-                    type: boolean
-                  user_id:
-                    type: string
+          Return: return_description'
+        operationId: get_check_token_valid_resource
+        responses:
+          '200':
+            description: Success
+        summary: returns role of the user
+        tags:
+        - default
+      post:
+        operationId: post_check_token_valid_resource
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+  - - /api/dashboard
+    - get:
+        operationId: get_user_dashboard_resource
+        responses:
+          '200':
+            description: Success
+        summary: 'Return quizzes categorized into two parts: upcoming quizzes and
+          past quizzes'
+        tags:
+        - default
+  - - /api/fetchQuestions
+    - get:
+        description: 'Expects a query parameter `quiz_id`.
 
-  /check_token_valid:
-    post:
-      tags:
-        - Authentication
-      summary: Validate JWT token
-      description: Check if the provided JWT token is valid
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Token is valid
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  claims:
-                    type: object
-    get:
-      tags:
-        - Authentication
-      summary: Get user role
-      description: Returns the role of the authenticated user
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: User role retrieved
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  role:
-                    type: string
-                    enum: [admin, user]
+          Keyword arguments:
 
-  # Subject Management
-  /subjects:
-    get:
-      tags:
-        - Subjects
-      summary: Get all subjects
-      description: Retrieve list of all academic subjects
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Subjects retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  subjects:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Subject'
+          argument -- description
 
-    post:
-      tags:
-        - Subjects
-      summary: Create new subject
-      description: Create a new academic subject (Admin only)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-                - description
-              properties:
-                name:
-                  type: string
-                  example: "Mathematics"
-                description:
-                  type: string
-                  example: "Advanced mathematics course"
-      responses:
-        '201':
-          description: Subject created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  subject_id:
-                    type: integer
-        '400':
-          description: Subject already exists or validation error
-        '403':
-          description: Admin access required
-
-    delete:
-      tags:
-        - Subjects
-      summary: Delete subject
-      description: Delete an academic subject (Admin only)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-              properties:
-                name:
-                  type: string
-      responses:
-        '200':
-          description: Subject deleted successfully
-        '404':
-          description: Subject not found
-
-  # Chapter Management
-  /chapters:
-    get:
-      tags:
-        - Chapters
-      summary: Get chapters by subject
-      description: Retrieve chapters for a specific subject
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: subject_id
-          in: query
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Chapters retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      subject_id:
-                        type: integer
-                      chapters:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Chapter'
-        '400':
-          description: Missing subject_id parameter
-        '404':
-          description: No chapters found
-
-    post:
-      tags:
-        - Chapters
-      summary: Create new chapter
-      description: Create a new chapter within a subject (Admin only)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-                - description
-                - subject_id
-              properties:
-                name:
-                  type: string
-                  example: "Algebra"
-                description:
-                  type: string
-                  example: "Introduction to algebraic concepts"
-                subject_id:
-                  type: integer
-                  example: 1
-      responses:
-        '201':
-          description: Chapter created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  chapter_id:
-                    type: integer
-
-    patch:
-      tags:
-        - Chapters
-      summary: Update chapter
-      description: Update chapter information (Admin only)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                id:
-                  type: integer
-                name:
-                  type: string
-                description:
-                  type: string
-      responses:
-        '200':
-          description: Chapter updated successfully
-        '404':
-          description: Chapter not found
-
-    delete:
-      tags:
-        - Chapters
-      summary: Delete chapter
-      description: Delete a chapter (Admin only)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - id
-              properties:
-                id:
-                  type: integer
-      responses:
-        '200':
-          description: Chapter deleted successfully
-        '404':
-          description: Chapter not found
-
-  # Quiz Management
-  /quizzes:
-    get:
-      tags:
-        - Quizzes
-      summary: Get quizzes
-      description: Retrieve quizzes, optionally filtered by subject (Admin only)
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: subject_id
-          in: query
-          schema:
-            type: integer
-          description: Filter by subject ID, use 99999 for all quizzes
-      responses:
-        '200':
-          description: Quizzes retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  quizzes:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/QuizSummary'
-
-    post:
-      tags:
-        - Quizzes
-      summary: Create new quiz
-      description: Create a new quiz (Admin only)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuizInput'
-      responses:
-        '201':
-          description: Quiz created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  quiz_id:
-                    type: integer
-        '400':
-          description: Validation error
-        '404':
-          description: Chapter or subject not found
-
-    delete:
-      tags:
-        - Quizzes
-      summary: Delete quiz
-      description: Delete a quiz by ID (Admin only)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - quiz_id
-              properties:
-                quiz_id:
-                  type: integer
-      responses:
-        '200':
-          description: Quiz deleted successfully
-        '404':
-          description: Quiz not found
-
-  # Question Management
-  /questions:
-    get:
-      tags:
-        - Questions
-      summary: Get questions for quiz
-      description: Retrieve all questions for a specific quiz (Admin only)
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: quiz_id
-          in: query
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Questions retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      quiz_id:
-                        type: integer
-                      questions:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Question'
-
-    post:
-      tags:
-        - Questions
-      summary: Add question to quiz
-      description: Add a new question to a quiz (Admin only)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuestionInput'
-      responses:
-        '201':
-          description: Question added successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  question_id:
-                    type: integer
-
-    delete:
-      tags:
-        - Questions
-      summary: Delete question
-      description: Delete a question from a quiz (Admin only)
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - question_id
-              properties:
-                question_id:
-                  type: integer
-      responses:
-        '200':
-          description: Question deleted successfully
-        '404':
-          description: Question not found
-
-  # User Dashboard
-  /dashboard:
-    get:
-      tags:
-        - Users
-      summary: Get user dashboard
-      description: Get user dashboard with upcoming and past quizzes
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Dashboard data retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  upcoming_quizzes:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/QuizDashboard'
-                  past_quizzes:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/QuizDashboard'
-
-  # Quiz Taking
-  /take_quiz:
-    get:
-      tags:
-        - Quiz Taking
-      summary: Get quiz for taking
-      description: Retrieve quiz questions and metadata for taking
-      parameters:
-        - name: quiz_id
-          in: query
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Quiz data retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/QuizTaking'
-        '404':
-          description: Quiz not found
-
-  /take_response:
-    post:
-      tags:
-        - Quiz Taking
-      summary: Submit quiz response
-      description: Submit user's answer to a quiz question
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - quiz_id
-                - question_id
-                - user_id
-                - selected_option
-              properties:
-                quiz_id:
-                  type: integer
-                question_id:
-                  type: integer
-                user_id:
-                  type: integer
-                selected_option:
-                  type: string
-      responses:
-        '201':
-          description: Response recorded successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  quiz_response_id:
-                    type: integer
-                  status:
-                    type: string
-        '404':
-          description: Quiz or question not found
-
-  # Scoring
-  /scoreboard:
-    get:
-      tags:
-        - Scoring
-      summary: Get user's scores
-      description: Retrieve all scores for the authenticated user
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Scores retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  scores:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ScoreDetail'
-
-  # Admin Analytics
-  /admin/dashboard:
-    get:
-      tags:
-        - Admin
-      summary: Get admin dashboard statistics
-      description: Retrieve system-wide statistics for admin dashboard
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Statistics retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  statistics:
-                    $ref: '#/components/schemas/AdminStatistics'
-
-  /admin/users:
-    get:
-      tags:
-        - Admin
-      summary: Get user list for admin
-      description: Retrieve paginated list of users for admin management
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: per_page
-          in: query
-          schema:
-            type: integer
-            default: 10
-      responses:
-        '200':
-          description: Users retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/User'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-
-  /admin/export:
-    get:
-      tags:
-        - Admin
-      summary: Get export list
-      description: Retrieve list of available data exports
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Exports list retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  exports:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ExportFile'
-
-    post:
-      tags:
-        - Admin
-      summary: Trigger data export
-      description: Generate a new data export file
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Export triggered successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-  schemas:
-    User:
-      type: object
-      properties:
-        id:
-          type: integer
-        username:
-          type: string
-        full_name:
-          type: string
-        role:
-          type: string
-          enum: [admin, user]
-        qualification:
-          type: string
-        date_of_birth:
-          type: string
-          format: date
-
-    Subject:
-      type: object
-      properties:
-        subject_id:
-          type: integer
-        subject_name:
-          type: string
-        subject_description:
-          type: string
-
-    Chapter:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        description:
-          type: string
-
-    QuizSummary:
-      type: object
-      properties:
-        quiz_id:
-          type: integer
-        quiz_title:
-          type: string
-        subject_id:
-          type: integer
-        subject_name:
-          type: string
-        chapter_id:
-          type: integer
-        chapter_name:
-          type: string
-        number_of_questions:
-          type: integer
-
-    QuizInput:
-      type: object
-      required:
-        - title
-        - timeduration
-        - time_of_day
-        - chapter_id
-        - subject_id
-        - date
-        - remarks
-      properties:
-        title:
-          type: string
-        timeduration:
-          type: integer
-          description: Duration in minutes
-        time_of_day:
-          type: string
-          format: time
-          example: "14:30:00"
-        chapter_id:
-          type: integer
-        subject_id:
-          type: integer
-        date:
-          type: string
-          format: date
-        remarks:
-          type: string
-
-    Question:
-      type: object
-      properties:
-        id:
-          type: integer
-        question:
-          type: string
-        options:
-          type: array
-          items:
-            type: string
-          minItems: 4
-          maxItems: 4
-        answer:
-          type: string
-        marks:
-          type: integer
-
-    QuestionInput:
-      type: object
-      required:
-        - question
-        - option1
-        - option2
-        - option3
-        - option4
-        - answer
-        - marks
-        - quiz_id
-        - chapter_id
-        - subject_id
-      properties:
-        question:
-          type: string
-        option1:
-          type: string
-        option2:
-          type: string
-        option3:
-          type: string
-        option4:
-          type: string
-        answer:
-          type: string
-        marks:
-          type: integer
-        quiz_id:
-          type: integer
-        chapter_id:
-          type: integer
-        subject_id:
-          type: integer
-
-    QuizDashboard:
-      type: object
-      properties:
-        id:
-          type: integer
-        title:
-          type: string
-        date_of_quiz:
-          type: string
-          format: date
-        duration:
-          type: integer
-        chapter:
-          type: integer
-        subject:
-          type: integer
-        time_of_day:
-          type: string
-          format: time
-
-    QuizTaking:
-      type: object
-      properties:
-        quiz_id:
-          type: integer
-        number_of_questions:
-          type: integer
-        time_duration:
-          type: integer
-        time_of_day:
-          type: string
-          format: time
-        questions:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              question:
-                type: string
-              options:
-                type: array
-                items:
-                  type: string
-              marks:
-                type: integer
-
-    ScoreDetail:
-      type: object
-      properties:
-        id:
-          type: integer
-        quiz_id:
-          type: integer
-        quiz_title:
-          type: string
-        subject_name:
-          type: string
-        chapter_name:
-          type: string
-        score:
-          type: number
-        timestamp:
-          type: string
-          format: date-time
-
-    AdminStatistics:
-      type: object
-      properties:
-        total_users:
-          type: integer
-        total_quizzes:
-          type: integer
-        total_subjects:
-          type: integer
-        total_questions:
-          type: integer
-        recent_activity:
-          type: array
-          items:
-            type: object
-
-    ExportFile:
-      type: object
-      properties:
-        filename:
-          type: string
-        created:
-          type: string
-          format: date-time
-        size:
-          type: integer
-
-    Pagination:
-      type: object
-      properties:
-        page:
-          type: integer
-        per_page:
-          type: integer
-        total:
-          type: integer
-        pages:
-          type: integer
-
-    Error:
-      type: object
-      properties:
-        message:
-          type: string
-        error:
-          type: string
+          Return: return_description'
+        operationId: get_take_quiz_resource
+        responses:
+          '200':
+            description: Success
+        summary: return the quiz_id, number of questions, time duration, and time
+          of day for the quiz, question_id, question, options, marks
+        tags:
+        - default
+  - - /api/login
+    - get:
+        operationId: get_user_login_resource
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      post:
+        operationId: post_user_login_resource
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+  - - /api/logout
+    - post:
+        operationId: post_user_logout_resource
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+  - - /api/questions
+    - delete:
+        operationId: delete_question_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      get:
+        operationId: get_question_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      post:
+        operationId: post_question_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+  - - /api/quizzes
+    - delete:
+        description: Expects a JSON body with the quiz_id to delete.
+        operationId: delete_quiz_resources
+        responses:
+          '200':
+            description: Success
+        summary: Delete a quiz by its ID
+        tags:
+        - default
+      get:
+        description: If subject_id is 9999, return all quizzes.
+        operationId: get_quiz_resources
+        responses:
+          '200':
+            description: Success
+        summary: Return quizzes based on subject_id
+        tags:
+        - default
+      post:
+        description: |
+          {
+            "title": "hello",
+            "remarks": "jhvjhv",
+            "timeduration": "1",
+            "date": "2025-07-15",
+            "subject_id": 2,
+            "chapter_id": 2,
+            "time_of_day": "12:00:00"
+          }
+        operationId: post_quiz_resources
+        responses:
+          '200':
+            description: Success
+        summary: 'Create a new quiz with the following JSON structure:'
+        tags:
+        - default
+  - - /api/register
+    - post:
+        operationId: post_user_register_resource
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+  - - /api/scoreboard
+    - get:
+        operationId: get_return_users_score_board
+        responses:
+          '200':
+            description: Success
+        summary: Return the user's score board with detailed scores for each quiz
+        tags:
+        - default
+  - - /api/scores
+    - get:
+        operationId: get_scores_resource
+        responses:
+          '200':
+            description: Success
+        summary: return all the scores of the user
+        tags:
+        - default
+  - - /api/subjects
+    - delete:
+        operationId: delete_subject_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      get:
+        operationId: get_subject_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      patch:
+        operationId: patch_subject_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      post:
+        operationId: post_subject_resources
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+  - - /api/takeResponse
+    - post:
+        description: Expects a JSON body with quiz_id, question_id, and selected_option.
+        operationId: post_take_response_resource
+        responses:
+          '200':
+            description: Success
+        summary: Submit the quiz responses and calculate the score
+        tags:
+        - default
+  - - /api/test
+    - get:
+        operationId: get_test_post_resource
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+      post:
+        operationId: post_test_post_resource
+        responses:
+          '200':
+            description: Success
+        tags:
+        - default
+produces:
+- application/json
+responses:
+  MaskError:
+    description: When any error occurs on mask
+  ParseError:
+    description: When a mask can't be parsed
+swagger: '2.0'
+tags:
+- description: Default namespace
+  name: default

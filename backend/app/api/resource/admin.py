@@ -1,12 +1,13 @@
 import os
 from datetime import datetime, timedelta
 
-from app.cache import cache_result
+from flask import request, send_file
+from flask_restx import Resource
+
+from app.cache import CacheManager, cache_result
 from app.middleware import jwt_auth_required, role_required
 from app.models import Quiz, Score, User, db
 from app.tasks import generate_user_stats_csv
-from flask import request, send_file
-from flask_restful import Resource
 
 
 class CachedUserStats:
@@ -34,6 +35,11 @@ class AdminDashboardResource(Resource):
     def get(self):
         """Get admin dashboard statistics"""
 
+        cache_key = "admin:dashboard:stats"
+        cached_stats = CacheManager.get_cached_data(cache_key)
+        if cached_stats:
+            return cached_stats, 200
+
         total_users = User.query.count()
 
         total_quizzes = Quiz.query.count()
@@ -49,7 +55,7 @@ class AdminDashboardResource(Resource):
         scores = [score.score for score in Score.query.all()]
         avg_score = sum(scores) / len(scores) if scores else 0
 
-        return {
+        result = {
             "statistics": {
                 "total_users": total_users,
                 "total_quizzes": total_quizzes,
@@ -58,7 +64,11 @@ class AdminDashboardResource(Resource):
                 "recent_quizzes_7d": recent_quizzes,
                 "average_score": round(avg_score, 2),
             }
-        }, 200
+        }
+
+        CacheManager.set_cached_data(cache_key, result, 300)
+
+        return result, 200
 
 
 class ExportUserStatsResource(Resource):
@@ -119,6 +129,11 @@ class AdminUsersResource(Resource):
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 10))
 
+        cache_key = f"admin:users:page:{page}:per_page:{per_page}"
+        cached_data = CacheManager.get_cached_data(cache_key)
+        if cached_data:
+            return cached_data, 200
+
         users_pagination = User.query.paginate(
             page=page, per_page=per_page, error_out=False
         )
@@ -139,7 +154,7 @@ class AdminUsersResource(Resource):
                 }
             )
 
-        return {
+        result = {
             "users": users_data,
             "pagination": {
                 "page": page,
@@ -147,4 +162,8 @@ class AdminUsersResource(Resource):
                 "total": users_pagination.total,
                 "pages": users_pagination.pages,
             },
-        }, 200
+        }
+
+        CacheManager.set_cached_data(cache_key, result, 180)
+
+        return result, 200

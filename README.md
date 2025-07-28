@@ -2,7 +2,7 @@
 
 QuizNexus is a comprehensive quiz management system designed for educational institutions and online learning platforms. It provides a complete solution for creating, managing, and taking quizzes with real-time analytics and role-based access control.
 
-## Features
+<!-- ## Features
 
 ### 🎯 Core Functionality
 - **Quiz Management**: Create, edit, and organize quizzes by subjects and chapters
@@ -45,7 +45,7 @@ QuizNexus is a comprehensive quiz management system designed for educational ins
 - **Flask-JWT-Extended**: JWT authentication and authorization
 - **SQLAlchemy**: ORM for database operations
 - **SQLite**: Database engine (development)
-- **Werkzeug**: Password hashing and security utilities
+- **Werkzeug**: Password hashing and security utilities -->
 
 ## Prerequisites
 
@@ -58,6 +58,7 @@ Before running the application, ensure you have:
 ## Installation & Setup
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/yourusername/QuizNexus_21f3002473.git
 cd QuizNexus_21f3002473
@@ -120,6 +121,7 @@ The frontend application will be available at `http://localhost:8080`
 ## Environment Configuration
 
 ### Backend (.env)
+
 ```env
 FLASK_APP=app.py
 FLASK_ENV=development
@@ -129,6 +131,7 @@ DATABASE_URL=sqlite:///quiz_nexus.db
 ```
 
 ### Frontend (.env)
+
 ```env
 VUE_APP_API_BASE_URL=http://localhost:5000/api
 ```
@@ -167,12 +170,14 @@ QuizNexus_21f3002473/
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/login` - User login
 - `POST /api/register` - User registration
 - `POST /api/logout` - User logout
 - `POST /api/check_token_valid` - Token validation
 
 ### Admin Endpoints
+
 - `GET /api/subjects` - List all subjects
 - `POST /api/subjects` - Create new subject
 - `GET /api/chapters` - List chapters by subject
@@ -183,12 +188,14 @@ QuizNexus_21f3002473/
 - `POST /api/questions` - Add question to quiz
 
 ### User Endpoints
+
 - `GET /api/dashboard` - User dashboard data
 - `GET /api/take_quiz` - Get quiz questions
 - `POST /api/take_response` - Submit quiz answers
 - `GET /api/scoreboard` - User's score history
 
 ### Analytics
+
 - `GET /api/admin/dashboard` - Admin dashboard statistics
 - `GET /api/admin/users` - User management
 - `POST /api/admin/export` - Generate data exports
@@ -196,6 +203,7 @@ QuizNexus_21f3002473/
 ## Usage Guide
 
 ### For Students
+
 1. **Registration**: Create an account using the registration form
 2. **Dashboard**: View upcoming and past quizzes
 3. **Take Quiz**: Click on available quizzes to start
@@ -203,6 +211,7 @@ QuizNexus_21f3002473/
 5. **Track Progress**: Monitor improvement over time
 
 ### For Administrators
+
 1. **Login**: Access admin panel with administrator credentials
 2. **Manage Subjects**: Create and organize academic subjects
 3. **Create Chapters**: Structure content within subjects
@@ -223,52 +232,11 @@ cd frontend
 npm run test
 ```
 
-### Code Formatting
-```bash
-# Frontend
-cd frontend
-npm run lint
-npm run format
-
-# Backend
-cd backend
-black .
-flake8 .
-```
-
-### Building for Production
-```bash
-# Frontend build
-cd frontend
-npm run build
-
-# Backend with production WSGI server
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
-```
-
-## Deployment
-
-### Using Docker (Recommended)
-```bash
-# Build and run with docker-compose
-docker-compose up --build
-
-# Or build individual containers
-docker build -t quiznexus-frontend ./frontend
-docker build -t quiznexus-backend ./backend
-```
-
-### Manual Deployment
-1. Set up production database (PostgreSQL recommended)
-2. Configure environment variables for production
-3. Build frontend assets: `npm run build`
-4. Deploy backend with WSGI server (Gunicorn/uWSGI)
-5. Serve frontend through web server (Nginx/Apache)
 
 ## Database Schema
 
 ### Key Models
+
 - **User**: User accounts with role-based permissions
 - **Subject**: Academic subjects for quiz organization
 - **Chapter**: Chapters within subjects
@@ -337,18 +305,3 @@ docker build -t quiznexus-backend ./backend
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
-
-For support and questions:
-- Create an issue in the GitHub repository
-- Contact the development team
-- Check the documentation for common solutions
-
-## Acknowledgments
-
-- Vue.js community for excellent documentation
-- Flask community for robust web framework
-- Chart.js for beautiful data visualizations
-- Bootstrap team for responsive design components
-
----

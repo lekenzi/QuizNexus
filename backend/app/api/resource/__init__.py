@@ -5,27 +5,20 @@ import time
 from datetime import datetime, timedelta, timezone
 from operator import ge
 
-from app.api.validators import (
-    UserLoginParser,
-    UserRegisterParser,
-    add_chapter_parser,
-    add_quiz_parser,
-    add_subject_parser,
-    checkTokenParser,
-    questions_add_parser,
-    take_response_parser,
-)
-from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
-from app.models import Chapter, Question, Quiz, QuizResponse, Score, Subject, User, db
 from flask import make_response, request
-from flask_jwt_extended import (
-    create_access_token,
-    get_jwt,
-    get_jwt_identity,
-    jwt_required,
-)
-from flask_restful import Resource
+from flask_jwt_extended import (create_access_token, get_jwt, get_jwt_identity,
+                                jwt_required)
+from flask_restx import Resource
 from werkzeug.security import generate_password_hash
+
+from app.api.validators import (UserLoginParser, UserRegisterParser,
+                                add_chapter_parser, add_quiz_parser,
+                                add_subject_parser, checkTokenParser,
+                                questions_add_parser, take_response_parser)
+from app.cache import CacheManager, cache_result, invalidate_cache
+from app.middleware import jwt_auth_required, optional_jwt_auth, role_required
+from app.models import (Chapter, Question, Quiz, QuizResponse, Score, Subject,
+                        User, db)
 
 
 class CheckTokenValidResource(Resource):
@@ -162,6 +155,7 @@ class UserLogoutResource(Resource):
 class SubjectResources(Resource):
     @jwt_auth_required
     @optional_jwt_auth
+    @cache_result(expiration=600)
     def get(self):
         subjects = Subject.query.all()
         subjects_data = []
@@ -197,6 +191,8 @@ class SubjectResources(Resource):
 
         db.session.add(new_subject)
         db.session.commit()
+
+        CacheManager.invalidate_subjects_cache()
 
         return {
             "message": "Subject created successfully",
@@ -261,6 +257,8 @@ class SubjectResources(Resource):
         db.session.delete(existing_subject)
         db.session.commit()
 
+        CacheManager.invalidate_subjects_cache()
+
         return {"message": "Subject deleted successfully"}, 200
 
 
@@ -275,10 +273,16 @@ class TestPostResource(Resource):
 
 class ChapterResources(Resource):
     @jwt_auth_required
+    @cache_result(expiration=300)
     def get(self):
         subject_id = request.args.get("subject_id", type=int)
         if not subject_id:
             return {"message": "Missing subject_id in query parameters"}, 400
+
+        cache_key = f"chapters:subject:{subject_id}"
+        cached_data = CacheManager.get_cached_data(cache_key)
+        if cached_data:
+            return cached_data, 200
 
         chapters = Chapter.query.filter_by(subject_id=subject_id).all()
         if not chapters:
@@ -289,7 +293,11 @@ class ChapterResources(Resource):
             for chapter in chapters
         ]
 
-        return {"data": {"subject_id": subject_id, "chapters": chapters_data}}, 200
+        result = {"data": {"subject_id": subject_id, "chapters": chapters_data}}
+
+        CacheManager.set_cached_data(cache_key, result, 300)
+
+        return result, 200
 
     @jwt_auth_required
     @role_required(["admin"])
@@ -311,6 +319,8 @@ class ChapterResources(Resource):
         )
         db.session.add(new_chapter)
         db.session.commit()
+
+        invalidate_cache(f"chapters:subject:{subject_id}*")
 
         return {
             "message": "Chapter created successfully",
@@ -354,28 +364,19 @@ class ChapterResources(Resource):
 
 
 class QuizResources(Resource):
-
     @jwt_auth_required
     @role_required(["admin"])
+    @cache_result(expiration=180)
     def get(self):
         """
         Return quizzes based on subject_id. If subject_id is 9999, return all quizzes.
-        {
-            quizzes: [
-                {
-                    quiz_id: 1,
-                    quiz_title: "Quiz 1",
-                    subject_id: 1,
-                    subject_name: "Mathematics",
-                    chapter_id: 1,
-                    chapter_name: "Algebra",
-                    number_of_questions: 10,
-                },
-                ...
-            ]
-        }
         """
         subject_id = request.args.get("subject_id", type=int)
+
+        cache_key = f"quizzes:subject:{subject_id if subject_id else 'all'}"
+        cached_data = CacheManager.get_cached_data(cache_key)
+        if cached_data:
+            return cached_data, 200
 
         if subject_id is None or subject_id == 99999:
             quizzes = Quiz.query.all()
@@ -402,7 +403,10 @@ class QuizResources(Resource):
                 }
             )
 
-        return {"quizzes": quizzes_data}, 200
+        result = {"quizzes": quizzes_data}
+        CacheManager.set_cached_data(cache_key, result, 180)
+
+        return result, 200
 
     @jwt_auth_required
     @role_required(["admin"])
@@ -607,6 +611,12 @@ class UserDashboardResource(Resource):
         """
         Return quizzes categorized into two parts: upcoming quizzes and past quizzes.
         """
+        user_id = get_jwt_identity()
+
+        cached_dashboard = CacheManager.get_user_quizzes(user_id)
+        if cached_dashboard:
+            return cached_dashboard, 200
+
         current_datetime = datetime.now()
 
         quizzes = Quiz.query.order_by(Quiz.date_of_quiz.asc()).all()
@@ -638,20 +648,24 @@ class UserDashboardResource(Resource):
             else:
                 past_quizzes.append(quiz_data)
 
-        return {
+        result = {
             "upcoming_quizzes": upcoming_quizzes,
             "past_quizzes": past_quizzes,
-        }, 200
+        }
+
+        CacheManager.set_user_quizzes(user_id, result, 180)
+
+        return result, 200
 
 
 class ScoresResource(Resource):
     @jwt_auth_required
     @role_required(["user"])
+    @cache_result(expiration=120)
     def get(self):
-        """
-        return all the scores of the user
-        """
+        """return all the scores of the user"""
         user_id = get_jwt_identity()
+
         scores = Score.query.filter_by(user_id=user_id).all()
         scores_data = []
         for score in scores:
