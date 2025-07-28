@@ -1,13 +1,12 @@
 import os
 from datetime import datetime, timedelta
 
-from flask import request, send_file
-from flask_restx import Resource
-
 from app.cache import CacheManager, cache_result
 from app.middleware import jwt_auth_required, role_required
 from app.models import Quiz, Score, User, db
 from app.tasks import generate_user_stats_csv
+from flask import request, send_file
+from flask_restx import Resource
 
 
 class CachedUserStats:
