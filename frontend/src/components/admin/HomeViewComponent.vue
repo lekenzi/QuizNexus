@@ -1,5 +1,6 @@
 <template>
   <div class="subjects-grid container">
+    <h2 class="text-center mb-4">All Subjects</h2>
     <div class="d-flex justify-content-center my-4">
       <AddButtonComponent
         class="add-button"
@@ -9,8 +10,17 @@
       />
     </div>
 
+    <div class="mb-4 w-100" style="max-width: 400px">
+      <input
+        v-model="subjectSearchQuery"
+        type="text"
+        class="form-control"
+        placeholder="Search subjects..."
+      />
+    </div>
+
     <div class="row">
-      <div v-for="subject in subjects" :key="subject.id">
+      <div v-for="subject in filteredSubjects" :key="subject.id">
         <TableComponent :subject="subject" @refresh-subjects="fetchSubjects" />
       </div>
     </div>
@@ -27,7 +37,20 @@ export default {
     return {
       subjects: [],
       showModal: false,
+      subjectSearchQuery: "",
     };
+  },
+  computed: {
+    filteredSubjects() {
+      if (!this.subjectSearchQuery) {
+        return this.subjects;
+      }
+      return this.subjects.filter((subject) =>
+        subject.name
+          .toLowerCase()
+          .includes(this.subjectSearchQuery.toLowerCase())
+      );
+    },
   },
   methods: {
     async fetchSubjects() {
@@ -38,6 +61,7 @@ export default {
           name: s.subject_name,
           description: s.subject_description,
           id: s.subject_id,
+          quizzes: s.number_of_quizzes || 0,
         }));
       } catch (error) {
         console.error("Failed to fetch subjects:", error);
@@ -56,7 +80,9 @@ export default {
 
 <style scoped>
 .subjects-grid {
-  /* min-height: 100vh; */
+  background-color: white;
+  border-radius: 35px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;

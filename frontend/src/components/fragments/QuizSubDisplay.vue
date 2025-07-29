@@ -6,7 +6,6 @@
       <p class="text-muted">{{ filteredQuizzes.length }} quiz(s) found</p>
     </div>
 
-    <!-- Search Input -->
     <div class="search-container mb-3">
       <input
         type="text"
@@ -148,7 +147,6 @@ export default {
 </script>
 
 <style scoped>
-/* Example of simpler, cleaner CSS */
 .quiz-sub-display {
   width: 100%;
   padding: 1rem;

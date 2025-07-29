@@ -151,16 +151,13 @@ export default {
         };
         const response = await make_postrequest("/questions", payload);
         if (response.message === "Question added successfully") {
-          alert(response.message);
           this.showModal = false;
           this.resetForm();
         } else {
           console.error("Unexpected response:", response);
-          alert("Failed to add question.");
         }
       } catch (error) {
         console.error("Error adding question:", error);
-        alert("Failed to add question.");
       }
     },
     resetForm() {

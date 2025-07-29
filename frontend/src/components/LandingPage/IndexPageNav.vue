@@ -48,15 +48,7 @@
                 Quizzes
               </router-link>
             </li>
-            <!-- <li class="nav-item">
-              <router-link
-                to="/summary"
-                class="nav-link"
-                :class="{ active: isActive('/summary') }"
-              >
-                Summary
-              </router-link>
-            </li> -->
+
             <li class="nav-item">
               <router-link
                 to="/admin/dashboard"
@@ -91,7 +83,6 @@
             </li>
           </template>
 
-          <!-- Navbar for user role -->
           <template v-else-if="isAuth && userRole === 'user'">
             <li class="nav-item">
               <router-link
@@ -136,7 +127,6 @@
             </li>
           </template>
 
-          <!-- Navbar for unauthenticated users -->
           <template v-else>
             <li class="nav-item">
               <router-link

@@ -34,7 +34,6 @@
                   required
                 />
               </div>
-              <!-- Add more fields as needed -->
             </div>
             <div class="modal-footer">
               <button type="submit" class="btn btn-success">Submit</button>

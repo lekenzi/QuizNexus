@@ -1,5 +1,5 @@
 <template>
-  <div class="container mt-4">
+  <div class="container mt-4 bg-white">
     <h1 class="text-primary mb-4">Admin Dashboard</h1>
 
     <div v-if="loading" class="text-center my-5">
@@ -55,42 +55,6 @@
           </div>
         </div>
       </div>
-
-      <div class="col-12 mt-4">
-        <div class="card">
-          <div class="card-header bg-light">
-            <h5 class="mb-0">Quick Actions</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-4">
-                <router-link
-                  to="/admin/users"
-                  class="btn btn-outline-primary w-100 mb-2"
-                >
-                  <i class="fas fa-users me-2"></i> Manage Users
-                </router-link>
-              </div>
-              <div class="col-md-4">
-                <router-link
-                  to="/admin/export"
-                  class="btn btn-outline-success w-100 mb-2"
-                >
-                  <i class="fas fa-file-export me-2"></i> Export Data
-                </router-link>
-              </div>
-              <div class="col-md-4">
-                <router-link
-                  to="/quizzes"
-                  class="btn btn-outline-info w-100 mb-2"
-                >
-                  <i class="fas fa-question-circle me-2"></i> Manage Quizzes
-                </router-link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -137,11 +101,4 @@ export default {
 };
 </script>
 
-<style scoped>
-.card {
-  transition: transform 0.3s ease;
-}
-.card:hover {
-  /* transform: translateY(-5px); */
-}
-</style>
+<style scoped></style>

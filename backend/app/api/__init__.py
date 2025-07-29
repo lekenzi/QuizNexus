@@ -20,6 +20,7 @@ from app.api.resource import (
     UserLoginResource,
     UserLogoutResource,
     UserRegisterResource,
+    MyQuizStats,
 )
 from app.api.resource.admin import (
     AdminDashboardResource,
@@ -48,7 +49,7 @@ api.add_resource(ScoresResource, "/api/scores", endpoint="scores")
 api.add_resource(TakeQuizResource, "/api/fetchQuestions", endpoint="fetchQuestions")
 api.add_resource(TakeResponseResource, "/api/takeResponse", endpoint="takeResponse")
 api.add_resource(ReturnUsersScoreBoard, "/api/scoreboard", endpoint="scoreboard")
-
+api.add_resource(MyQuizStats, "/api/my_quiz_stats", endpoint="my_quiz_stats")
 
 api.add_resource(
     UserPreferencesResource, "/api/user/preferences", endpoint="user_preferences"

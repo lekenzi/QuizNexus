@@ -3,18 +3,28 @@
     <div class="card shadow mb-4">
       <div class="card-body">
         <h2 class="card-title text-center mb-4">{{ subject.name }}</h2>
+
+        <div class="mb-3">
+          <input
+            v-model="chapterSearchQuery"
+            type="text"
+            class="form-control"
+            placeholder="Search chapters..."
+          />
+        </div>
+
         <table class="table table-hover align-middle">
           <thead class="table-light">
             <tr>
               <th>Chapter Name</th>
-              <th>Number of Questions</th>
+              <th>Number of Quizzes</th>
               <th colspan="2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="chapter in chapters" :key="chapter.id">
+            <tr v-for="chapter in filteredChapters" :key="chapter.id">
               <td>{{ chapter.name }}</td>
-              <td>{{ chapter.questions ?? 0 }}</td>
+              <td>{{ chapter.quizzes ?? 0 }}</td>
               <td>
                 <PatchChapterButtonComponent
                   :chapter="chapter"
@@ -63,7 +73,20 @@ export default {
   data() {
     return {
       chapters: [],
+      chapterSearchQuery: "",
     };
+  },
+  computed: {
+    filteredChapters() {
+      if (!this.chapterSearchQuery) {
+        return this.chapters;
+      }
+      return this.chapters.filter((chapter) =>
+        chapter.name
+          .toLowerCase()
+          .includes(this.chapterSearchQuery.toLowerCase())
+      );
+    },
   },
   components: {
     AddChapterButtonComponent,
@@ -83,7 +106,7 @@ export default {
           id: chap.id,
           name: chap.name,
           description: chap.description,
-          questions: 0,
+          quizzes: chap.number_of_quizzes || 0,
         }));
       } catch (error) {
         console.error("Failed to fetch chapters:", error);

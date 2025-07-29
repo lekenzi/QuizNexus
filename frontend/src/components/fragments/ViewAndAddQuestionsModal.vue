@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- Trigger Button -->
+   
     <button
       class="btn btn-primary"
       @click="toggleModal"
@@ -10,7 +10,7 @@
       View & Add Questions
     </button>
 
-    <!-- Modal -->
+   
     <div
       v-if="showModal"
       class="modal fade show d-block"
@@ -20,7 +20,7 @@
     >
       <div class="modal-dialog modal-xl">
         <div class="modal-content">
-          <!-- Modal Header -->
+         
           <div class="modal-header">
             <h5 class="modal-title">
               <i class="fas fa-question-circle me-2"></i>
@@ -33,9 +33,9 @@
             ></button>
           </div>
 
-          <!-- Modal Body -->
+         
           <div class="modal-body">
-            <!-- Quiz Info Card -->
+           
             <div class="card mb-4 bg-light">
               <div class="card-body">
                 <div class="row">
@@ -58,7 +58,7 @@
               </div>
             </div>
 
-            <!-- Add Question Section -->
+           
             <div class="mb-4">
               <div
                 class="d-flex justify-content-between align-items-center mb-3"
@@ -74,7 +74,7 @@
                 </button>
               </div>
 
-              <!-- Add Question Form -->
+             
               <div
                 v-if="showAddQuestionForm"
                 class="border rounded p-3 bg-light"
@@ -91,7 +91,7 @@
               </div>
             </div>
 
-            <!-- Questions List -->
+           
             <div class="questions-section">
               <div
                 class="d-flex justify-content-between align-items-center mb-3"
@@ -110,7 +110,7 @@
                 </button>
               </div>
 
-              <!-- Loading State -->
+             
               <div v-if="loading" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
                   <span class="visually-hidden">Loading questions...</span>
@@ -118,7 +118,7 @@
                 <p class="mt-2 text-muted">Loading questions...</p>
               </div>
 
-              <!-- Error State -->
+             
               <div v-else-if="error" class="alert alert-danger" role="alert">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 {{ error }}
@@ -130,7 +130,7 @@
                 </button>
               </div>
 
-              <!-- Empty State -->
+             
               <div v-else-if="questions.length === 0" class="text-center py-5">
                 <i class="fas fa-question-circle fa-3x text-muted mb-3"></i>
                 <h6 class="text-muted">No questions found</h6>
@@ -146,7 +146,7 @@
                 </button>
               </div>
 
-              <!-- Questions List -->
+             
               <div v-else class="questions-list">
                 <div
                   v-for="(question, index) in questions"
@@ -168,7 +168,7 @@
                       </small>
                     </div>
                     <div class="btn-group btn-group-sm">
-                      <!-- <button
+                     
                         class="btn btn-outline-primary"
                         @click="editQuestion(question)"
                         title="Edit Question"
@@ -219,7 +219,7 @@
             </div>
           </div>
 
-          <!-- Modal Footer -->
+         
           <div class="modal-footer">
             <div class="me-auto">
               <small class="text-muted">
@@ -235,7 +235,7 @@
       </div>
     </div>
 
-    <!-- Modal Backdrop -->
+   
     <div v-if="showModal" class="modal-backdrop fade show"></div>
   </div>
 </template>
@@ -345,13 +345,8 @@ export default {
         response;
         this.questions = this.questions.filter((q) => q.id !== questionId);
         this.lastUpdated = new Date();
-        alert("Question deleted successfully.");
       } catch (error) {
         console.error("Failed to delete question:", error);
-        alert(
-          error.response?.data?.message ||
-            "Failed to delete question. Please try again."
-        );
       }
     },
 

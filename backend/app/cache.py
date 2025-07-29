@@ -14,7 +14,7 @@ def cache_key_generator(*args, **kwargs):
     return hashlib.md5(key_data.encode()).hexdigest()
 
 
-def cache_result(expiration=10):
+def cache_result(expiration=0):
     """Decorator to cache function results"""
 
     def decorator(func):
@@ -71,7 +71,7 @@ class CacheManager:
         return None
 
     @staticmethod
-    def set_cached_data(key, data, expiration=300):
+    def set_cached_data(key, data, expiration=5):
         """Set generic cached data with key"""
         try:
             redis_client.setex(key, expiration, json.dumps(data, default=str))

@@ -1,5 +1,4 @@
 <template>
-  <!-- add the chart js component and then get this imported into the main summary component -->
   <canvas id="topScoreChart"></canvas>
 </template>
 

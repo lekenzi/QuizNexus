@@ -1,9 +1,7 @@
 <template>
   <div>
-    <!-- Edit Button -->
     <button class="btn btn-warning" @click="openModal">Edit</button>
 
-    <!-- Modal -->
     <div
       v-if="showModal"
       class="modal fade show d-block"

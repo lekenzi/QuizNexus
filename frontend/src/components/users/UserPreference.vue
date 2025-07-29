@@ -1,5 +1,5 @@
 <template>
-  <div class="container mt-4">
+  <div class="container mt-5 bg-white p-4 rounded">
     <h1 class="text-primary mb-4">User Preferences</h1>
 
     <div v-if="loading" class="text-center my-5">
@@ -9,20 +9,18 @@
       <p class="mt-2">Loading preferences...</p>
     </div>
 
-    <div v-else-if="error" class="alert alert-danger">
+    <div v-else-if="error" class="alert alert-danger rounded">
       {{ error }}
     </div>
 
     <div v-else class="row">
-      <!-- Preferences Form -->
       <div class="col-md-8">
-        <div class="card">
-          <div class="card-header bg-primary text-white">
+        <div class="card rounded">
+          <div class="card-header bg-primary text-white rounded-top">
             <h5 class="mb-0"><i class="fas fa-cog me-2"></i>My Preferences</h5>
           </div>
           <div class="card-body">
             <form @submit.prevent="updatePreferences">
-              <!-- Notification Settings -->
               <div class="mb-4">
                 <h6 class="text-secondary mb-3">Notification Settings</h6>
 
@@ -64,7 +62,7 @@
                   </label>
                   <input
                     type="time"
-                    class="form-control"
+                    class="form-control rounded"
                     id="reminderTime"
                     v-model="form.reminder_time"
                     :disabled="!form.email_reminders"
@@ -75,12 +73,12 @@
                 </div>
               </div>
 
-              <div v-if="updateError" class="alert alert-danger">
+              <div v-if="updateError" class="alert alert-danger rounded">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 {{ updateError }}
               </div>
 
-              <div v-if="updateSuccess" class="alert alert-success">
+              <div v-if="updateSuccess" class="alert alert-success rounded">
                 <i class="fas fa-check-circle me-2"></i>
                 {{ updateSuccess }}
               </div>
@@ -88,7 +86,7 @@
               <div class="d-flex justify-content-end">
                 <button
                   type="button"
-                  class="btn btn-secondary me-2"
+                  class="btn btn-secondary me-2 rounded"
                   @click="resetForm"
                   :disabled="isUpdating"
                 >
@@ -96,7 +94,7 @@
                 </button>
                 <button
                   type="submit"
-                  class="btn btn-primary"
+                  class="btn btn-primary rounded"
                   :disabled="isUpdating"
                 >
                   <span
@@ -112,10 +110,9 @@
         </div>
       </div>
 
-      <!-- Preference Summary & Last Visit -->
       <div class="col-md-4">
-        <div class="card mb-4">
-          <div class="card-header bg-info text-white">
+        <div class="card mb-4 rounded">
+          <div class="card-header bg-info text-white rounded-top">
             <h6 class="mb-0">
               <i class="fas fa-info-circle me-2"></i>Account Summary
             </h6>
@@ -216,7 +213,6 @@ export default {
 
       try {
         const response = await make_getrequest("/user/preferences");
-        console.log("Fetched preferences:", response);
         this.preferences = response.preferences;
         this.initializeForm();
       } catch (error) {
@@ -308,14 +304,6 @@ export default {
 </script>
 
 <style scoped>
-.card {
-  transition: transform 0.2s ease;
-}
-
-.card:hover {
-  /* transform: translateY(-2px); */
-}
-
 .form-check-input:checked {
   background-color: #0d6efd;
   border-color: #0d6efd;

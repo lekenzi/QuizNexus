@@ -4,7 +4,6 @@
       My Performance Statistics
     </h1>
 
-    <!-- Stats Summary -->
     <div class="row mb-4">
       <div class="col-md-4">
         <div class="card text-white bg-primary">

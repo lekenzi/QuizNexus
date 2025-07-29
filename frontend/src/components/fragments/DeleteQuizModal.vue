@@ -1,9 +1,7 @@
 <template>
   <div>
-    <!-- Delete Button -->
     <button class="btn btn-danger" @click="openModal">Delete</button>
 
-    <!-- Modal -->
     <div
       v-if="showModal"
       class="modal fade show d-block"
@@ -112,11 +110,9 @@ export default {
       this.deleteError = null;
 
       try {
-        console.log("Attempting to delete quiz:", this.quiz.id);
         const response = await make_deleterequest("/quizzes", {
           quiz_id: this.quiz.quiz_id,
         });
-        console.log("Delete response:", response);
         if (response) {
           this.$emit("quiz-deleted", {
             quiz: this.quiz,

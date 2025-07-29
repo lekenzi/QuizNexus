@@ -4,7 +4,6 @@
       class="d-flex flex-column bg-white p-3 overflow-auto"
       style="width: 380px; flex-shrink: 0"
     >
-      <!-- Quiz Details Card -->
       <div class="card mb-3 border-0 bg-light">
         <div class="card-body">
           <h5 class="card-title text-primary">
@@ -16,9 +15,7 @@
             <p class="mb-2">
               <strong>Duration:</strong> {{ quizDuration }} minutes
             </p>
-            <!-- <p class="mb-2">
-              <strong>Questions:</strong> {{ number_of_questions }} total
-            </p> -->
+
             <p class="mb-2"><strong>Subject:</strong> {{ subjectName }}</p>
             <p class="mb-2"><strong>Chapter:</strong> {{ chapterName }}</p>
           </div>
@@ -29,10 +26,8 @@
         <i class="fas fa-check-circle me-2"></i>{{ quizEndedMessage }}
       </div>
       <div v-else>
-        <!-- Timer Section -->
         <div class="card mb-3 border-0">
           <div class="card-body">
-            <!-- Quiz hasn't started yet -->
             <div v-if="!quizStarted" class="text-center">
               <div class="countdown-circle">
                 {{ countdown.minutes }}:{{
@@ -41,7 +36,7 @@
               </div>
               <p class="text-info mt-2">Quiz starts in</p>
             </div>
-            <!-- Quiz is running -->
+
             <div v-else class="text-center">
               <div class="countdown-circle running">
                 {{ countdown.minutes }}:{{
@@ -53,7 +48,6 @@
           </div>
         </div>
 
-        <!-- Progress Section -->
         <div class="card mb-3 border-0" v-if="quizStarted">
           <div class="card-body">
             <h6 class="card-subtitle mb-2 text-muted">Your Progress</h6>
@@ -76,7 +70,6 @@
           </div>
         </div>
 
-        <!-- Question grid - only show when quiz has started -->
         <div v-if="quizStarted" class="card mb-3 border-0">
           <div class="card-body">
             <h6 class="card-subtitle mb-2 text-muted">Questions</h6>
@@ -93,7 +86,6 @@
           </div>
         </div>
 
-        <!-- End quiz button - only show when quiz is active -->
         <button
           class="btn btn-danger w-100"
           @click="endQuiz"

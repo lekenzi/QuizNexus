@@ -235,7 +235,6 @@ export async function make_postrequest(url, data = {}) {
     },
     body: JSON.stringify(data),
   });
-  console.log("POST Response:", response);
   if (!response.ok) {
     throw new Error("Network response was not ok", await response.json());
   }
@@ -273,7 +272,6 @@ export async function make_deleterequest(url, data = {}) {
     },
     body: JSON.stringify(data),
   });
-  console.log("DELETE Response:", await response.json());
   if (!response.ok) {
     throw new Error("Network response was not ok");
   }

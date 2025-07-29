@@ -86,8 +86,6 @@ export default {
   methods: {
     handleLogin() {
       if (this.password !== this.confirmPassword) {
-        alert("Passwords do not match!");
-        // make the input fields red
         document.getElementById("password").style.borderColor = "red";
         document.getElementById("confirmPassword").style.borderColor = "red";
         return;
@@ -101,12 +99,9 @@ export default {
           date_of_birth: this.dateOfBirth,
         })
         .then(() => {
-          alert("Registration successful! You can now log in.");
           this.$router.push("/home");
         })
-        .catch(() => {
-          alert("Registration failed. Please try again.");
-        });
+        .catch(() => {});
     },
   },
 };
