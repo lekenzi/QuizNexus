@@ -8,6 +8,7 @@ cache = Cache()
 from app.api.resource import (
     ChapterResources,
     CheckTokenValidResource,
+    MyQuizStats,
     QuestionResources,
     QuizResources,
     ReturnUsersScoreBoard,
@@ -20,7 +21,6 @@ from app.api.resource import (
     UserLoginResource,
     UserLogoutResource,
     UserRegisterResource,
-    MyQuizStats,
 )
 from app.api.resource.admin import (
     AdminDashboardResource,

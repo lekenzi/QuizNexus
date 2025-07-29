@@ -201,7 +201,7 @@ class SubjectResources(Resource):
     def get(self):
         subjects = Subject.query.all()
         subjects_data = []
-        
+
         for subject in subjects:
             quiz_count = Quiz.query.filter_by(subject_id=subject.id).count()
             subjects_data.append(
@@ -970,10 +970,8 @@ class MyQuizStats(Resource):
         if not user_id:
             return {"message": "Authentication required"}, 401
 
-        
         scores = Score.query.filter_by(user_id=user_id).all()
-        
-        
+
         total_quizzes_taken = len(scores)
         if total_quizzes_taken == 0:
             return {
@@ -985,50 +983,53 @@ class MyQuizStats(Resource):
                     "total_points": 0,
                     "subject_breakdown": [],
                     "performance_trend": "no_data",
-                    "achievements": []
-                }
+                    "achievements": [],
+                },
             }, 200
 
-        
         total_points = sum(score.score for score in scores)
         average_score = round(total_points / total_quizzes_taken, 2)
         best_score = max(score.score for score in scores)
         worst_score = min(score.score for score in scores)
 
-        
         total_correct_answers = QuizResponse.query.filter_by(
             user_id=user_id, is_correct=True
         ).count()
-        
-        
-        total_questions_attempted = QuizResponse.query.filter_by(user_id=user_id).count()
-        
-        
+
+        total_questions_attempted = QuizResponse.query.filter_by(
+            user_id=user_id
+        ).count()
+
         accuracy_percentage = round(
-            (total_correct_answers / total_questions_attempted * 100) if total_questions_attempted > 0 else 0, 
-            2
+            (
+                (total_correct_answers / total_questions_attempted * 100)
+                if total_questions_attempted > 0
+                else 0
+            ),
+            2,
         )
 
-        
         subject_stats = {}
         quiz_ids = [score.quiz_id for score in scores]
         quizzes = Quiz.query.filter(Quiz.id.in_(quiz_ids)).all()
-        
+
         for quiz in quizzes:
             subject = Subject.query.get(quiz.subject_id)
             if subject:
                 subject_name = subject.name
-                user_scores_for_subject = [s.score for s in scores if s.quiz_id == quiz.id]
-                
+                user_scores_for_subject = [
+                    s.score for s in scores if s.quiz_id == quiz.id
+                ]
+
                 if subject_name not in subject_stats:
                     subject_stats[subject_name] = {
                         "subject_id": subject.id,
                         "quizzes_taken": 0,
                         "total_score": 0,
                         "best_score": 0,
-                        "worst_score": 100
+                        "worst_score": 100,
                     }
-                
+
                 for score_val in user_scores_for_subject:
                     subject_stats[subject_name]["quizzes_taken"] += 1
                     subject_stats[subject_name]["total_score"] += score_val
@@ -1039,88 +1040,96 @@ class MyQuizStats(Resource):
                         subject_stats[subject_name]["worst_score"], score_val
                     )
 
-        
         subject_breakdown = []
         for subject_name, stats in subject_stats.items():
             avg_score = round(stats["total_score"] / stats["quizzes_taken"], 2)
-            subject_breakdown.append({
-                "subject_name": subject_name,
-                "subject_id": stats["subject_id"],
-                "quizzes_taken": stats["quizzes_taken"],
-                "average_score": avg_score,
-                "best_score": stats["best_score"],
-                "worst_score": stats["worst_score"] if stats["worst_score"] != 100 else stats["best_score"]
-            })
+            subject_breakdown.append(
+                {
+                    "subject_name": subject_name,
+                    "subject_id": stats["subject_id"],
+                    "quizzes_taken": stats["quizzes_taken"],
+                    "average_score": avg_score,
+                    "best_score": stats["best_score"],
+                    "worst_score": (
+                        stats["worst_score"]
+                        if stats["worst_score"] != 100
+                        else stats["best_score"]
+                    ),
+                }
+            )
 
-        
         subject_breakdown.sort(key=lambda x: x["quizzes_taken"], reverse=True)
 
-        
         recent_scores = sorted(scores, key=lambda x: x.timestamp, reverse=True)
         performance_trend = "stable"
-        
+
         if len(recent_scores) >= 6:
             recent_5_avg = sum(s.score for s in recent_scores[:5]) / 5
-            previous_5_avg = sum(s.score for s in recent_scores[5:10]) / min(5, len(recent_scores[5:]))
-            
+            previous_5_avg = sum(s.score for s in recent_scores[5:10]) / min(
+                5, len(recent_scores[5:])
+            )
+
             if recent_5_avg > previous_5_avg + 5:
                 performance_trend = "improving"
             elif recent_5_avg < previous_5_avg - 5:
                 performance_trend = "declining"
 
-        
         achievements = []
-        
-        
+
         perfect_scores = [s for s in scores if s.score == 100]
         if perfect_scores:
-            achievements.append({
-                "type": "perfect_score",
-                "title": "Perfect Score!",
-                "description": f"Achieved perfect score {len(perfect_scores)} time(s)",
-                "icon": "🏆"
-            })
+            achievements.append(
+                {
+                    "type": "perfect_score",
+                    "title": "Perfect Score!",
+                    "description": f"Achieved perfect score {len(perfect_scores)} time(s)",
+                    "icon": "🏆",
+                }
+            )
 
-        
         if average_score >= 80:
-            achievements.append({
-                "type": "high_performer",
-                "title": "High Performer",
-                "description": f"Maintaining {average_score}% average score",
-                "icon": "⭐"
-            })
+            achievements.append(
+                {
+                    "type": "high_performer",
+                    "title": "High Performer",
+                    "description": f"Maintaining {average_score}% average score",
+                    "icon": "⭐",
+                }
+            )
 
-        
         if total_quizzes_taken >= 10:
-            achievements.append({
-                "type": "quiz_master",
-                "title": "Quiz Master",
-                "description": f"Completed {total_quizzes_taken} quizzes",
-                "icon": "🎓"
-            })
+            achievements.append(
+                {
+                    "type": "quiz_master",
+                    "title": "Quiz Master",
+                    "description": f"Completed {total_quizzes_taken} quizzes",
+                    "icon": "🎓",
+                }
+            )
 
-        
         if len(recent_scores) >= 5:
             recent_5_scores = [s.score for s in recent_scores[:5]]
             if all(score >= 70 for score in recent_5_scores):
-                achievements.append({
-                    "type": "consistent",
-                    "title": "Consistent Performer",
-                    "description": "No score below 70% in recent quizzes",
-                    "icon": "📈"
-                })
+                achievements.append(
+                    {
+                        "type": "consistent",
+                        "title": "Consistent Performer",
+                        "description": "No score below 70% in recent quizzes",
+                        "icon": "📈",
+                    }
+                )
 
-        
         for subject in subject_breakdown:
             if subject["quizzes_taken"] >= 3 and subject["average_score"] >= 80:
-                achievements.append({
-                    "type": "subject_specialist",
-                    "title": f"{subject['subject_name']} Specialist",
-                    "description": f"{subject['average_score']}% average in {subject['subject_name']}",
-                    "icon": "🏅"
-                })
+                achievements.append(
+                    {
+                        "type": "subject_specialist",
+                        "title": f"{subject['subject_name']} Specialist",
+                        "description": f"{subject['average_score']}% average in {subject['subject_name']}",
+                        "icon": "🏅",
+                    }
+                )
 
-        
         all_users_avg_scores = []
         all_users = User.query.filter_by(role="user").all()
         for user in all_users:
@@ -1129,18 +1138,22 @@ class MyQuizStats(Resource):
                 user_avg = sum(s.score for s in user_scores) / len(user_scores)
                 all_users_avg_scores.append(user_avg)
 
-        
         if all_users_avg_scores:
-            better_than_count = sum(1 for avg in all_users_avg_scores if average_score > avg)
-            percentile_rank = round((better_than_count / len(all_users_avg_scores)) * 100, 1)
+            better_than_count = sum(
+                1 for avg in all_users_avg_scores if average_score > avg
+            )
+            percentile_rank = round(
+                (better_than_count / len(all_users_avg_scores)) * 100, 1
+            )
         else:
             percentile_rank = 0
 
-        
         thirty_days_ago = datetime.now() - timedelta(days=30)
-        recent_activity = Score.query.filter_by(user_id=user_id).filter(
-            Score.timestamp >= thirty_days_ago
-        ).count()
+        recent_activity = (
+            Score.query.filter_by(user_id=user_id)
+            .filter(Score.timestamp >= thirty_days_ago)
+            .count()
+        )
 
         return {
             "stats": {
@@ -1158,10 +1171,26 @@ class MyQuizStats(Resource):
                 "subject_breakdown": subject_breakdown,
                 "achievements": achievements,
                 "activity_summary": {
-                    "most_active_subject": subject_breakdown[0]["subject_name"] if subject_breakdown else "None",
+                    "most_active_subject": (
+                        subject_breakdown[0]["subject_name"]
+                        if subject_breakdown
+                        else "None"
+                    ),
                     "subjects_attempted": len(subject_breakdown),
-                    "best_subject": max(subject_breakdown, key=lambda x: x["average_score"])["subject_name"] if subject_breakdown else "None",
-                    "best_subject_average": max(subject_breakdown, key=lambda x: x["average_score"])["average_score"] if subject_breakdown else 0
-                }
+                    "best_subject": (
+                        max(subject_breakdown, key=lambda x: x["average_score"])[
+                            "subject_name"
+                        ]
+                        if subject_breakdown
+                        else "None"
+                    ),
+                    "best_subject_average": (
+                        max(subject_breakdown, key=lambda x: x["average_score"])[
+                            "average_score"
+                        ]
+                        if subject_breakdown
+                        else 0
+                    ),
+                },
             }
         }, 200
