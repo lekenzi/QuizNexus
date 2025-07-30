@@ -1216,16 +1216,15 @@ class AdminDashboardStatsResource(Resource):
             # Time-based statistics
             thirty_days_ago = datetime.now() - timedelta(days=30)
             seven_days_ago = datetime.now() - timedelta(days=7)
-            
+
             new_users_30d = User.query.filter(
-                User.date_of_birth >= thirty_days_ago,
-                User.role == "user"
+                User.date_of_birth >= thirty_days_ago, User.role == "user"
             ).count()
-            
+
             recent_quizzes_7d = Quiz.query.filter(
                 Quiz.date_of_quiz >= seven_days_ago.date()
             ).count()
-            
+
             recent_attempts_7d = Score.query.filter(
                 Score.timestamp >= seven_days_ago
             ).count()
@@ -1233,7 +1232,9 @@ class AdminDashboardStatsResource(Resource):
             # Performance statistics
             all_scores = Score.query.all()
             if all_scores:
-                average_score = round(sum(s.score for s in all_scores) / len(all_scores), 2)
+                average_score = round(
+                    sum(s.score for s in all_scores) / len(all_scores), 2
+                )
                 highest_score = max(s.score for s in all_scores)
                 lowest_score = min(s.score for s in all_scores)
             else:
@@ -1246,21 +1247,30 @@ class AdminDashboardStatsResource(Resource):
             subjects = Subject.query.all()
             for subject in subjects:
                 subject_quizzes = Quiz.query.filter_by(subject_id=subject.id).count()
-                subject_scores = db.session.query(Score).join(Quiz).filter(Quiz.subject_id == subject.id).all()
-                
+                subject_scores = (
+                    db.session.query(Score)
+                    .join(Quiz)
+                    .filter(Quiz.subject_id == subject.id)
+                    .all()
+                )
+
                 if subject_scores:
-                    subject_avg = round(sum(s.score for s in subject_scores) / len(subject_scores), 2)
+                    subject_avg = round(
+                        sum(s.score for s in subject_scores) / len(subject_scores), 2
+                    )
                     subject_attempts = len(subject_scores)
                 else:
                     subject_avg = 0
                     subject_attempts = 0
-                
-                subject_stats.append({
-                    "subject_name": subject.name,
-                    "total_quizzes": subject_quizzes,
-                    "total_attempts": subject_attempts,
-                    "average_score": subject_avg
-                })
+
+                subject_stats.append(
+                    {
+                        "subject_name": subject.name,
+                        "total_quizzes": subject_quizzes,
+                        "total_attempts": subject_attempts,
+                        "average_score": subject_avg,
+                    }
+                )
 
             # Top performing users
             user_performance = []
@@ -1268,16 +1278,22 @@ class AdminDashboardStatsResource(Resource):
             for user in users:
                 user_scores = Score.query.filter_by(user_id=user.id).all()
                 if user_scores:
-                    user_avg = round(sum(s.score for s in user_scores) / len(user_scores), 2)
-                    user_performance.append({
-                        "username": user.username,
-                        "full_name": user.full_name,
-                        "total_attempts": len(user_scores),
-                        "average_score": user_avg
-                    })
-            
+                    user_avg = round(
+                        sum(s.score for s in user_scores) / len(user_scores), 2
+                    )
+                    user_performance.append(
+                        {
+                            "username": user.username,
+                            "full_name": user.full_name,
+                            "total_attempts": len(user_scores),
+                            "average_score": user_avg,
+                        }
+                    )
+
             # Sort by average score and take top 10
-            top_performers = sorted(user_performance, key=lambda x: x["average_score"], reverse=True)[:10]
+            top_performers = sorted(
+                user_performance, key=lambda x: x["average_score"], reverse=True
+            )[:10]
 
             # Quiz engagement statistics
             quiz_engagement = []
@@ -1285,59 +1301,79 @@ class AdminDashboardStatsResource(Resource):
             for quiz in quizzes:
                 quiz_attempts = Score.query.filter_by(quiz_id=quiz.id).count()
                 quiz_scores = Score.query.filter_by(quiz_id=quiz.id).all()
-                
+
                 if quiz_scores:
-                    quiz_avg = round(sum(s.score for s in quiz_scores) / len(quiz_scores), 2)
+                    quiz_avg = round(
+                        sum(s.score for s in quiz_scores) / len(quiz_scores), 2
+                    )
                 else:
                     quiz_avg = 0
-                
+
                 subject = Subject.query.get(quiz.subject_id)
                 chapter = Chapter.query.get(quiz.chapter_id)
-                
-                quiz_engagement.append({
-                    "quiz_title": quiz.quiz_title,
-                    "subject_name": subject.name if subject else "Unknown",
-                    "chapter_name": chapter.name if chapter else "Unknown",
-                    "total_attempts": quiz_attempts,
-                    "average_score": quiz_avg,
-                    "date_created": quiz.date_of_quiz.isoformat() if quiz.date_of_quiz else None
-                })
+
+                quiz_engagement.append(
+                    {
+                        "quiz_title": quiz.quiz_title,
+                        "subject_name": subject.name if subject else "Unknown",
+                        "chapter_name": chapter.name if chapter else "Unknown",
+                        "total_attempts": quiz_attempts,
+                        "average_score": quiz_avg,
+                        "date_created": (
+                            quiz.date_of_quiz.isoformat() if quiz.date_of_quiz else None
+                        ),
+                    }
+                )
 
             # Sort by total attempts
-            popular_quizzes = sorted(quiz_engagement, key=lambda x: x["total_attempts"], reverse=True)[:10]
+            popular_quizzes = sorted(
+                quiz_engagement, key=lambda x: x["total_attempts"], reverse=True
+            )[:10]
 
             # Monthly trends (last 6 months)
             monthly_trends = []
             for i in range(6):
-                month_start = datetime.now().replace(day=1) - timedelta(days=30*i)
+                month_start = datetime.now().replace(day=1) - timedelta(days=30 * i)
                 month_end = month_start + timedelta(days=30)
-                
+
                 month_users = User.query.filter(
                     User.date_of_birth >= month_start,
                     User.date_of_birth < month_end,
-                    User.role == "user"
+                    User.role == "user",
                 ).count()
-                
+
                 month_attempts = Score.query.filter(
-                    Score.timestamp >= month_start,
-                    Score.timestamp < month_end
+                    Score.timestamp >= month_start, Score.timestamp < month_end
                 ).count()
-                
-                monthly_trends.append({
-                    "month": month_start.strftime("%Y-%m"),
-                    "new_users": month_users,
-                    "quiz_attempts": month_attempts
-                })
+
+                monthly_trends.append(
+                    {
+                        "month": month_start.strftime("%Y-%m"),
+                        "new_users": month_users,
+                        "quiz_attempts": month_attempts,
+                    }
+                )
 
             # System health metrics
-            active_users_30d = db.session.query(Score.user_id).filter(
-                Score.timestamp >= thirty_days_ago
-            ).distinct().count()
-            
-            engagement_rate = round((active_users_30d / total_users * 100), 2) if total_users > 0 else 0
-            
-            avg_questions_per_quiz = round(total_questions / total_quizzes, 2) if total_quizzes > 0 else 0
-            avg_attempts_per_user = round(total_attempts / total_users, 2) if total_users > 0 else 0
+            active_users_30d = (
+                db.session.query(Score.user_id)
+                .filter(Score.timestamp >= thirty_days_ago)
+                .distinct()
+                .count()
+            )
+
+            engagement_rate = (
+                round((active_users_30d / total_users * 100), 2)
+                if total_users > 0
+                else 0
+            )
+
+            avg_questions_per_quiz = (
+                round(total_questions / total_quizzes, 2) if total_quizzes > 0 else 0
+            )
+            avg_attempts_per_user = (
+                round(total_attempts / total_users, 2) if total_users > 0 else 0
+            )
 
             return {
                 "overview": {
@@ -1350,7 +1386,7 @@ class AdminDashboardStatsResource(Resource):
                     "total_chapters": total_chapters,
                     "new_users_30d": new_users_30d,
                     "recent_quizzes_7d": recent_quizzes_7d,
-                    "recent_attempts_7d": recent_attempts_7d
+                    "recent_attempts_7d": recent_attempts_7d,
                 },
                 "performance": {
                     "average_score": average_score,
@@ -1359,14 +1395,17 @@ class AdminDashboardStatsResource(Resource):
                     "engagement_rate": engagement_rate,
                     "active_users_30d": active_users_30d,
                     "avg_questions_per_quiz": avg_questions_per_quiz,
-                    "avg_attempts_per_user": avg_attempts_per_user
+                    "avg_attempts_per_user": avg_attempts_per_user,
                 },
                 "subject_breakdown": subject_stats,
                 "top_performers": top_performers,
                 "popular_quizzes": popular_quizzes,
-                "monthly_trends": list(reversed(monthly_trends))
+                "monthly_trends": list(reversed(monthly_trends)),
             }, 200
 
         except Exception as e:
             logging.error(f"Error fetching admin dashboard stats: {str(e)}")
-            return {"message": "Error fetching dashboard statistics", "error": str(e)}, 500
+            return {
+                "message": "Error fetching dashboard statistics",
+                "error": str(e),
+            }, 500

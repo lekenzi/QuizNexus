@@ -61,7 +61,9 @@ api.add_resource(
     AdminDashboardResource, "/api/admin/dashboard", endpoint="admin_dashboard"
 )
 api.add_resource(
-    AdminDashboardStatsResource, "/api/admin/dashboard/stats", endpoint="admin_dashboard_stats"
+    AdminDashboardStatsResource,
+    "/api/admin/dashboard/stats",
+    endpoint="admin_dashboard_stats",
 )
 api.add_resource(ExportUserStatsResource, "/api/admin/export", endpoint="admin_export")
 api.add_resource(AdminUsersResource, "/api/admin/users", endpoint="admin_users_list")
