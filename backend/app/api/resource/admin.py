@@ -30,7 +30,7 @@ class CachedUserStats:
 class AdminDashboardResource(Resource):
     @jwt_auth_required
     @role_required(["admin"])
-    @cache_result()
+    # @cache_result()
     def get(self):
         """Get admin dashboard statistics"""
 
@@ -73,6 +73,7 @@ class AdminDashboardResource(Resource):
 class ExportUserStatsResource(Resource):
     @jwt_auth_required
     @role_required(["admin"])
+    @cache_result()
     def post(self):
         """Trigger asynchronous CSV generation of user statistics"""
         task = generate_user_stats_csv.delay()

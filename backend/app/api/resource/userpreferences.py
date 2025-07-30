@@ -11,7 +11,7 @@ from flask_restful import Resource
 class UserPreferencesResource(Resource):
     @jwt_auth_required
     @role_required(["user"])
-    @cache_result()
+    # @cache_result()
     def get(self):
         """Return user preferences including reminder settings and other details."""
         user_id = get_jwt_identity()

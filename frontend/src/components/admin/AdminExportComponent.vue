@@ -1,5 +1,5 @@
 <template>
-  <div class="container mt-4">
+  <div class="container mt-4 bg-light rounded shadow-sm">
     <h1 class="text-primary mb-4">Data Export</h1>
 
     <div class="row">

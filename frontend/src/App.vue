@@ -34,7 +34,8 @@ html {
 }
 #app {
   min-height: 100vh;
-  background-image: url("./../public/img/icons/original-025fe3b1ac70c873f433aec624a65bdd.gif");
+  /* background-image: url("./../public/img/icons/original-025fe3b1ac70c873f433aec624a65bdd.gif"); */
+  background-color: azure;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

@@ -623,11 +623,9 @@ def test_monthly_reports():
     with app.app_context():
         now = datetime.now()
 
-        # Use current month instead of previous month for testing
         current_month = now.month
         current_year = now.year
 
-        # Get date range for current month (for testing with recent data)
         first_day = datetime(current_year, current_month, 1)
         last_day_num = monthrange(current_year, current_month)[1]
         last_day = datetime(current_year, current_month, last_day_num, 23, 59, 59)
@@ -640,7 +638,6 @@ def test_monthly_reports():
         all_users = User.query.filter_by(role="user").all()
 
         for user in all_users:
-            # For testing, send to all users regardless of preferences
             users_with_reports.append(user)
 
         report_stats = {
@@ -655,7 +652,6 @@ def test_monthly_reports():
 
         for user in users_with_reports:
             try:
-                # Get user's scores for the current month (more likely to have data)
                 monthly_scores = Score.query.filter(
                     Score.user_id == user.id,
                     Score.timestamp >= first_day,
@@ -663,7 +659,6 @@ def test_monthly_reports():
                 ).all()
 
                 if not monthly_scores:
-                    # For testing, create a mock report even with no activity
                     logging.info(
                         f"TEST: No activity for user {user.username}, creating mock report"
                     )
@@ -680,7 +675,6 @@ def test_monthly_reports():
                         "test_mode": True,
                     }
 
-                    # Send test report
                     email_sent = send_test_monthly_report_email(
                         user.username, report_data
                     )
@@ -697,7 +691,6 @@ def test_monthly_reports():
 
                     continue
 
-                # Process actual data if available
                 quiz_ids = [score.quiz_id for score in monthly_scores]
                 quizzes = Quiz.query.filter(Quiz.id.in_(quiz_ids)).all()
                 quiz_dict = {q.id: q for q in quizzes}

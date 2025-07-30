@@ -1,5 +1,5 @@
 <template>
-  <div class="container mt-4">
+  <div class="container mt-4 bg-light rounded shadow-sm">
     <h1 class="text-primary mb-4">User Management</h1>
 
     <div v-if="loading" class="text-center my-5">

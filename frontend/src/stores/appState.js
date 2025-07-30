@@ -137,6 +137,23 @@ const store = new Vuex.Store({
         throw error;
       }
     },
+    async fetchAdminDashboardStats() {
+      try {
+        const response = await axios.get(
+          this.state.BASEURL + "/admin/dashboard/stats",
+          {
+            headers: {
+              Authorization: `Bearer ${this.state.TOKEN}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching admin dashboard stats:", error);
+        throw error;
+      }
+    },
   },
 });
 
@@ -310,8 +327,8 @@ export async function initializeAuth() {
 // Admin API functions
 export async function fetchAdminDashboardStats() {
   try {
-    const response = await make_getrequest("/admin/dashboard");
-    return response.statistics || {};
+    const response = await make_getrequest("/admin/dashboard/stats");
+    return response;
   } catch (error) {
     console.error("Error fetching admin dashboard stats:", error);
     throw error;
