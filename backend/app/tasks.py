@@ -378,7 +378,6 @@ def send_daily_reminders():
         ).all()
         logging.info(f"Found {len(upcoming_quizzes)} upcoming quizzes")
 
-        
         try:
             advisor = get_advisor()
             ai_enabled = True
@@ -466,58 +465,83 @@ def send_daily_reminders():
                         f"{len(pending_quizzes)} upcoming quiz(es) you haven't attempted yet"
                     )
 
-                
                 ai_advice = None
                 if should_send_reminder and ai_enabled:
                     try:
-                        
-                        user_scores = Score.query.filter_by(user_id=user.id).order_by(Score.timestamp.desc()).limit(10).all()
-                        
+
+                        user_scores = (
+                            Score.query.filter_by(user_id=user.id)
+                            .order_by(Score.timestamp.desc())
+                            .limit(10)
+                            .all()
+                        )
+
                         recent_scores = [s.score for s in user_scores[:5]]
-                        avg_score = sum(s.score for s in user_scores) / len(user_scores) if user_scores else 0
-                        
-                        
+                        avg_score = (
+                            sum(s.score for s in user_scores) / len(user_scores)
+                            if user_scores
+                            else 0
+                        )
+
                         quiz_details = []
                         for score in user_scores:
                             quiz = Quiz.query.get(score.quiz_id)
                             if quiz:
-                                subject = Subject.query.get(quiz.subject_id) if quiz.subject_id else None
-                                quiz_details.append({
-                                    "quiz_title": quiz.quiz_title,
-                                    "score": score.score,
-                                    "subject": subject.name if subject else "General",
-                                    "date": score.timestamp
-                                })
-                        
-                        
+                                subject = (
+                                    Subject.query.get(quiz.subject_id)
+                                    if quiz.subject_id
+                                    else None
+                                )
+                                quiz_details.append(
+                                    {
+                                        "quiz_title": quiz.quiz_title,
+                                        "score": score.score,
+                                        "subject": (
+                                            subject.name if subject else "General"
+                                        ),
+                                        "date": score.timestamp,
+                                    }
+                                )
+
                         if len(recent_scores) >= 2:
                             mid = len(recent_scores) // 2
                             first_half = sum(recent_scores[:mid]) / mid
-                            second_half = sum(recent_scores[mid:]) / (len(recent_scores) - mid)
-                            trend = "improving" if second_half > first_half else "declining" if second_half < first_half else "stable"
+                            second_half = sum(recent_scores[mid:]) / (
+                                len(recent_scores) - mid
+                            )
+                            trend = (
+                                "improving"
+                                if second_half > first_half
+                                else (
+                                    "declining"
+                                    if second_half < first_half
+                                    else "stable"
+                                )
+                            )
                         else:
                             trend = "insufficient_data"
-                        
+
                         performance_data = {
                             "avg_score": avg_score,
                             "total_quizzes": len(user_scores),
                             "recent_scores": recent_scores,
                             "trend": trend,
                             "days_since_last": days_since_visit,
-                            "quiz_details": quiz_details
+                            "quiz_details": quiz_details,
                         }
-                        
-                        user_data = {
-                            "name": user.full_name,
-                            "email": user.username
-                        }
-                        
+
+                        user_data = {"name": user.full_name, "email": user.username}
+
                         logging.info(f"Generating AI advice for {user.username}")
-                        ai_advice = advisor.get_student_advice(user_data, performance_data)
+                        ai_advice = advisor.get_student_advice(
+                            user_data, performance_data
+                        )
                         reminder_stats["ai_suggestions_generated"] += 1
                         logging.info(f"AI advice generated for {user.username}")
                     except Exception as e:
-                        logging.error(f"Error generating AI advice for {user.username}: {str(e)}")
+                        logging.error(
+                            f"Error generating AI advice for {user.username}: {str(e)}"
+                        )
                         ai_advice = None
 
                 logging.info(
@@ -532,7 +556,7 @@ def send_daily_reminders():
                         reminder_reasons,
                         new_quizzes,
                         pending_quizzes,
-                        ai_advice
+                        ai_advice,
                     )
 
                     if email_sent:
@@ -853,18 +877,19 @@ def calculate_improvement_trend(user_id, start_date, end_date):
         return "stable"
 
 
-def send_quiz_reminder_email(email, user_name, reasons, new_quizzes, pending_quizzes, ai_advice=None):
+def send_quiz_reminder_email(
+    email, user_name, reasons, new_quizzes, pending_quizzes, ai_advice=None
+):
     """Send quiz reminder email to user with AI-powered suggestions"""
     subject = "🎯 QuizNexus Daily Reminder - Personalized Study Tips Inside!"
 
-    
     ai_section = ""
     if ai_advice:
         weak_topics = ai_advice.get("weak_topics", [])
         suggestions = ai_advice.get("suggestions", [])
         motivation = ai_advice.get("motivation", "")
         focus_areas = ai_advice.get("focus_areas", [])
-        
+
         if weak_topics or suggestions:
             ai_section = f"""
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; margin: 20px 0; color: white;">

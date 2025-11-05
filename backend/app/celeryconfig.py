@@ -1,5 +1,6 @@
 from celery.schedules import crontab
 
+
 beat_schedule = {
     "calculate-ended-quiz-scores": {
         "task": "app.tasks.calculate_ended_quiz_scores",
@@ -13,12 +14,12 @@ beat_schedule = {
         "task": "app.tasks.send_monthly_reports",
         "schedule": crontab(day_of_month=1, hour=9, minute=0),
     },
-    # this is for testing
     "test-monthly-reports": {
         "task": "app.tasks.test_monthly_reports",
         "schedule": 30,
     },
 }
+
 
 task_serializer = "json"
 accept_content = ["json"]
