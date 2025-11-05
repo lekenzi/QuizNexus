@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from app.celery_app import celery_app
 from app.email import send_email, send_email_with_attachment
 from app.models import *
+from app.agent.student_advisor import get_advisor
 
 
 def create_app_context():
@@ -363,6 +364,7 @@ def send_daily_reminders():
             "reminders_sent": 0,
             "inactive_users": 0,
             "new_quiz_alerts": 0,
+            "ai_suggestions_generated": 0,
             "errors": [],
         }
 
@@ -375,6 +377,15 @@ def send_daily_reminders():
             Quiz.date_of_quiz <= week_ahead,
         ).all()
         logging.info(f"Found {len(upcoming_quizzes)} upcoming quizzes")
+
+        
+        try:
+            advisor = get_advisor()
+            ai_enabled = True
+            logging.info("AI Advisor initialized successfully")
+        except Exception as e:
+            logging.error(f"Failed to initialize AI Advisor: {str(e)}")
+            ai_enabled = False
 
         for user in users:
             try:
@@ -416,6 +427,7 @@ def send_daily_reminders():
                 should_send_reminder = False
                 reminder_reasons = []
 
+                days_since_visit = 0
                 if user_pref.last_visit:
                     days_since_visit = (now - user_pref.last_visit).days
                     logging.info(
@@ -428,7 +440,6 @@ def send_daily_reminders():
                         )
                         reminder_stats["inactive_users"] += 1
                 else:
-
                     should_send_reminder = True
                     reminder_reasons.append("Welcome back! Check out what's new")
                     reminder_stats["inactive_users"] += 1
@@ -455,12 +466,65 @@ def send_daily_reminders():
                         f"{len(pending_quizzes)} upcoming quiz(es) you haven't attempted yet"
                     )
 
+                
+                ai_advice = None
+                if should_send_reminder and ai_enabled:
+                    try:
+                        
+                        user_scores = Score.query.filter_by(user_id=user.id).order_by(Score.timestamp.desc()).limit(10).all()
+                        
+                        recent_scores = [s.score for s in user_scores[:5]]
+                        avg_score = sum(s.score for s in user_scores) / len(user_scores) if user_scores else 0
+                        
+                        
+                        quiz_details = []
+                        for score in user_scores:
+                            quiz = Quiz.query.get(score.quiz_id)
+                            if quiz:
+                                subject = Subject.query.get(quiz.subject_id) if quiz.subject_id else None
+                                quiz_details.append({
+                                    "quiz_title": quiz.quiz_title,
+                                    "score": score.score,
+                                    "subject": subject.name if subject else "General",
+                                    "date": score.timestamp
+                                })
+                        
+                        
+                        if len(recent_scores) >= 2:
+                            mid = len(recent_scores) // 2
+                            first_half = sum(recent_scores[:mid]) / mid
+                            second_half = sum(recent_scores[mid:]) / (len(recent_scores) - mid)
+                            trend = "improving" if second_half > first_half else "declining" if second_half < first_half else "stable"
+                        else:
+                            trend = "insufficient_data"
+                        
+                        performance_data = {
+                            "avg_score": avg_score,
+                            "total_quizzes": len(user_scores),
+                            "recent_scores": recent_scores,
+                            "trend": trend,
+                            "days_since_last": days_since_visit,
+                            "quiz_details": quiz_details
+                        }
+                        
+                        user_data = {
+                            "name": user.full_name,
+                            "email": user.username
+                        }
+                        
+                        logging.info(f"Generating AI advice for {user.username}")
+                        ai_advice = advisor.get_student_advice(user_data, performance_data)
+                        reminder_stats["ai_suggestions_generated"] += 1
+                        logging.info(f"AI advice generated for {user.username}")
+                    except Exception as e:
+                        logging.error(f"Error generating AI advice for {user.username}: {str(e)}")
+                        ai_advice = None
+
                 logging.info(
                     f"Should send reminder to {user.username}: {should_send_reminder}, reasons: {reminder_reasons}"
                 )
 
                 if should_send_reminder:
-
                     logging.info(f"Sending reminder email to {user.username}")
                     email_sent = send_quiz_reminder_email(
                         user.username,
@@ -468,6 +532,7 @@ def send_daily_reminders():
                         reminder_reasons,
                         new_quizzes,
                         pending_quizzes,
+                        ai_advice
                     )
 
                     if email_sent:
@@ -788,9 +853,53 @@ def calculate_improvement_trend(user_id, start_date, end_date):
         return "stable"
 
 
-def send_quiz_reminder_email(email, user_name, reasons, new_quizzes, pending_quizzes):
-    """Send quiz reminder email to user"""
-    subject = "🎯 QuizNexus Daily Reminder - Don't Miss Out!"
+def send_quiz_reminder_email(email, user_name, reasons, new_quizzes, pending_quizzes, ai_advice=None):
+    """Send quiz reminder email to user with AI-powered suggestions"""
+    subject = "🎯 QuizNexus Daily Reminder - Personalized Study Tips Inside!"
+
+    
+    ai_section = ""
+    if ai_advice:
+        weak_topics = ai_advice.get("weak_topics", [])
+        suggestions = ai_advice.get("suggestions", [])
+        motivation = ai_advice.get("motivation", "")
+        focus_areas = ai_advice.get("focus_areas", [])
+        
+        if weak_topics or suggestions:
+            ai_section = f"""
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; margin: 20px 0; color: white;">
+                <h3 style="margin-top: 0; color: white;">🤖 AI-Powered Study Insights</h3>
+                <p style="color: #f0f0f0;">{motivation}</p>
+            </div>
+            
+            {f'''
+            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; border-radius: 5px;">
+                <h4 style="color: #856404; margin-top: 0;">📚 Topics That Need Your Attention:</h4>
+                <ul style="color: #856404; margin: 10px 0;">
+                    {''.join(f'<li><strong>{topic}</strong></li>' for topic in weak_topics)}
+                </ul>
+            </div>
+            ''' if weak_topics else ''}
+            
+            {f'''
+            <div style="background-color: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 15px 0; border-radius: 5px;">
+                <h4 style="color: #0c5460; margin-top: 0;">💡 Personalized Study Suggestions:</h4>
+                <ol style="color: #0c5460; margin: 10px 0;">
+                    {''.join(f'<li style="margin: 8px 0;">{suggestion}</li>' for suggestion in suggestions)}
+                </ol>
+            </div>
+            ''' if suggestions else ''}
+            
+            {f'''
+            <div style="background-color: #f8d7da; border-left: 4px solid #721c24; padding: 15px; margin: 15px 0; border-radius: 5px;">
+                <h4 style="color: #721c24; margin-top: 0;">🎯 Focus on These Quizzes:</h4>
+                <ul style="color: #721c24; margin: 10px 0;">
+                    {''.join(f'<li><strong>{area["quiz"]}</strong> - Score: {area["score"]}% (Subject: {area["subject"]})</li>' for area in focus_areas[:3])}
+                </ul>
+                <p style="color: #721c24; margin: 5px 0;"><em>Consider reviewing these topics for better understanding.</em></p>
+            </div>
+            ''' if focus_areas else ''}
+            """
 
     html_body = f"""
     <html>
@@ -805,6 +914,7 @@ def send_quiz_reminder_email(email, user_name, reasons, new_quizzes, pending_qui
                 .quiz-item {{ background-color: white; padding: 10px; margin: 5px 0; border-radius: 3px; border-left: 3px solid #2196f3; }}
                 .button {{ display: inline-block; background-color: #667eea; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 15px 5px; }}
                 .footer {{ background-color: #f8f9fa; padding: 20px; text-align: center; color: #666; }}
+                .ai-badge {{ background-color: #4CAF50; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.8em; font-weight: bold; }}
             </style>
         </head>
         <body>
@@ -812,12 +922,15 @@ def send_quiz_reminder_email(email, user_name, reasons, new_quizzes, pending_qui
                 <div class="header">
                     <h1>📚 QuizNexus Reminder</h1>
                     <p>Stay on track with your learning journey!</p>
+                    {f'<span class="ai-badge">✨ AI-Powered Insights</span>' if ai_advice else ''}
                 </div>
                 <div class="content">
                     <h2>Hi {user_name}! 👋</h2>
                     <p>We wanted to remind you about some exciting opportunities on QuizNexus:</p>
                     
                     {''.join(f'<div class="reason">📌 {reason}</div>' for reason in reasons)}
+                    
+                    {ai_section}
                     
                     {f'''
                     <h3>🆕 New Quizzes Added:</h3>
@@ -842,6 +955,7 @@ def send_quiz_reminder_email(email, user_name, reasons, new_quizzes, pending_qui
                 </div>
                 <div class="footer">
                     <p>💡 <strong>Tip:</strong> Regular practice leads to better results!</p>
+                    {f'<p>🤖 <em>Powered by AI to help you succeed</em></p>' if ai_advice else ''}
                     <p><small>You can manage your reminder preferences in your account settings.</small></p>
                 </div>
             </div>
