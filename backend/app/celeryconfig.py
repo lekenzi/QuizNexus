@@ -1,6 +1,5 @@
 from celery.schedules import crontab
 
-
 beat_schedule = {
     "calculate-ended-quiz-scores": {
         "task": "app.tasks.calculate_ended_quiz_scores",

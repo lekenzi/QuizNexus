@@ -5,10 +5,10 @@ import logging
 from calendar import monthrange
 from datetime import datetime, timedelta
 
+from app.agent.student_advisor import get_advisor
 from app.celery_app import celery_app
 from app.email import send_email, send_email_with_attachment
 from app.models import *
-from app.agent.student_advisor import get_advisor
 
 
 def create_app_context():
